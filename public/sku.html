@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKU Generator - Stock Management</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Management System</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="products.html">Products</a>
+            <a href="stock-in.html">Stock In</a>
+            <a href="stock-out.html">Stock Out</a>
+            <a href="reports.html">Reports</a>
+            <a href="sku.html">SKU Generator</a>
+        </nav>
+    </header>
+    <main>
+        <h2>SKU Generator</h2>
+        <form id="sku-form">
+            <div>
+                <label for="company-select">Company *:</label>
+                <select id="company-select" onchange="handleCompanySelect()" required>
+                    <option value="">Select Company</option>
+                    <option value="co">Continental (CO)</option>
+                    <option value="hz">Hozze (HZ)</option>
+                    <option value="ps">Policrom Screens (PS)</option>
+                    <option value="pa">Pawan (PA)</option>
+                    <option value="mz">Marks 3 Zet (MZ)</option>
+                    <option value="mt">Moneda Technologies (MT)</option>
+                    <option value="im">Image (IM)</option>
+                    <option value="cg">CGI (CG)</option>
+                    <option value="oh">MTECH (OH)</option>
+                    <option value="sg">MPACK (SG)</option>
+                    <option value="st">BSS (ST)</option>
+                    <option value="dg">Polipack (DG)</option>
+                    <option value="or">O.R.M.A.G (OR)</option>
+                    <option value="tb">Thompson Boyd (TB)</option>
+                    <option value="sp">Strip Plate (SP)</option>
+                    <option value="jy">Jiaxing Yaen (JY)</option>
+                    <option value="sz">Shanghi Zhisen (SZ)</option>
+                    <option value="og">OMM Graphics (OG)</option>
+                    <option value="te">Tenora (TE)</option>
+                    <option value="an">Anco (AN)</option>
+                    <option value="as">And Systems (AS)</option>
+                    <option value="tf">Tianjin FYG (TF)</option>
+                    <option value="mg">Moneda Tech Global (MG)</option>
+                    <option value="se">Salco Extrusions (SE)</option>
+                    <option value="ss">SPS Scarioni (SS)</option>
+                    <option value="new">Add New Company</option>
+                </select>
+                <input type="text" id="new-company" placeholder="Enter new company name" style="display:none;" oninput="generateShortform('company')" required>
+                <label for="company-shortform" id="company-shortform-label" style="display:none;">Company Shortform (2 letters) *:</label>
+                <input type="text" id="company-shortform" maxlength="2" placeholder="e.g., MT" style="display:none;" oninput="computeNumeric('company')" required>
+                <p id="company-numeric"></p>
+            </div>
+
+            <div>
+                <label for="brand-name">Brand Name *:</label>
+                <input type="text" id="brand-name" placeholder="Enter brand name" oninput="generateShortform('brand')" required>
+                <label for="brand-shortform">Brand Shortform (2 letters) *:</label>
+                <input type="text" id="brand-shortform" maxlength="2" placeholder="e.g., SS" oninput="computeNumeric('brand')" required>
+                <p id="brand-numeric"></p>
+            </div>
+
+            <div>
+                <label for="imported-code">Imported Product Code *:</label>
+                <input type="text" id="imported-code" placeholder="e.g., CGI/731208-1040" required>
+            </div>
+
+            <div>
+                <label for="thickness">Thickness:</label>
+                <input type="number" id="thickness" step="0.01">
+            </div>
+
+            <div>
+                <label for="length">Length:</label>
+                <input type="number" id="length" step="0.01">
+            </div>
+
+            <div>
+                <label for="width">Width:</label>
+                <input type="number" id="width" step="0.01">
+            </div>
+
+            <div>
+                <label for="barring">Barring:</label>
+                <select id="barring" onchange="handleBarring()">
+                    <option value="">Select</option>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+                <label for="bar-number" id="bar-number-label" style="display:none;">Bar Number:</label>
+                <input type="text" id="bar-number" placeholder="Enter bar number" style="display:none;">
+            </div>
+
+            <button type="button" onclick="generateSKU()">Generate SKU</button>
+        </form>
+        <div id="sku-result" style="margin-top: 1rem; font-size: 1.2em; font-weight: bold;"></div>
+    </main>
+    <script src="js/sku.js"></script>
+</body>
+</html>

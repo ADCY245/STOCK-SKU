@@ -1,0 +1,36 @@
+,<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Stock - Stock Management</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Management System</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="products.html">Products</a>
+            <a href="stock-in.html">Stock In</a>
+            <a href="stock-out.html">Stock Out</a>
+            <a href="reports.html">Reports</a>
+            <a href="sku.html">SKU Generator</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Issue Stock</h2>
+        <form id="stock-out-form">
+            <label for="product">Product *:</label>
+            <select id="product" required>
+                <!-- Products will be loaded here -->
+            </select>
+            <label for="quantity">Quantity *:</label>
+            <input type="number" id="quantity" required>
+            <button type="submit">Issue Stock</button>
+        </form>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/stock.js"></script>
+</body>
+</html>

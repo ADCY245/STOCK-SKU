@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Master - Stock Management</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Management System</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="products.html">Products</a>
+            <a href="stock-in.html">Stock In</a>
+            <a href="stock-out.html">Stock Out</a>
+            <a href="reports.html">Reports</a>
+            <a href="sku.html">SKU Generator</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Item Master</h2>
+        <form id="product-form">
+            <label for="name">Product Name *:</label>
+            <input type="text" id="name" required>
+            <label for="category">Category *:</label>
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="blankets">Blankets</option>
+                <option value="litho perf">Litho Perf</option>
+                <option value="underpacking">Underpacking</option>
+                <option value="rules">Rules</option>
+                <option value="matrix">Matrix</option>
+                <option value="chemicals">Chemicals</option>
+            </select>
+            <button type="submit">Add Product</button>
+        </form>
+        <div id="products-list">
+            <!-- Products will be listed here -->
+        </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/products.js"></script>
+</body>
+</html>
