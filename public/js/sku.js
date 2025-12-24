@@ -92,6 +92,23 @@ function handleCompanySelect() {
     computeNumericForType('company');
 }
 
+const checkDimensionsAndToggleBarring = () => {
+    const thickness = document.getElementById('thickness').value;
+    const length = document.getElementById('length').value;
+    const width = document.getElementById('width').value;
+    const barringSelect = document.getElementById('barring');
+    
+    if (thickness && length && width) {
+        barringSelect.disabled = false;
+    } else {
+        barringSelect.disabled = true;
+        barringSelect.value = '';
+        // Hide bar number fields if barring is cleared
+        document.getElementById('bar-number-label').style.display = 'none';
+        document.getElementById('bar-number').style.display = 'none';
+    }
+};
+
 function handleBarring() {
     const barringSelect = document.getElementById('barring');
     const barNumberLabel = document.getElementById('bar-number-label');
@@ -131,7 +148,7 @@ function generateSKU() {
 
     let dimensions = '';
     if (thickness && length && width) {
-        dimensions = `-${thickness}-${length}-${width}`;
+        dimensions = `.${thickness}.${length}.${width}`;
     }
 
     let sku = `${companyNumeric}.${brandNumeric}.${importedCode}${dimensions}`;
@@ -148,4 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // For brand, always show shortform and numeric
     document.getElementById('brand-shortform').style.display = 'block';
     document.getElementById('brand-numeric').style.display = 'block';
+    
+    // Initially disable barring dropdown
+    document.getElementById('barring').disabled = true;
+    
+    // Add event listeners to dimension inputs
+    document.getElementById('thickness').addEventListener('input', checkDimensionsAndToggleBarring);
+    document.getElementById('length').addEventListener('input', checkDimensionsAndToggleBarring);
+    document.getElementById('width').addEventListener('input', checkDimensionsAndToggleBarring);
 });
