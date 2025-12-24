@@ -70,7 +70,8 @@ function handleCompanySelect() {
             'tf': { shortform: 'TF', numeric: '206' },
             'mg': { shortform: 'MG', numeric: '137' },
             'se': { shortform: 'SE', numeric: '195' },
-            'ss': { shortform: 'SS', numeric: '1919' }
+            'ss': { shortform: 'SS', numeric: '1919' },
+            'vp': { shortform: 'VP', numeric: '2216' }
         };
         const data = predefined[select.value];
         shortformInput.value = data.shortform;
@@ -148,7 +149,7 @@ function generateSKU() {
 
     let dimensions = '';
     if (thickness && length && width) {
-        dimensions = `.${thickness}.${length}.${width}`;
+        dimensions = `-${thickness}-${length}-${width}`;
     }
 
     let sku = `${companyNumeric}.${brandNumeric}.${importedCode}${dimensions}`;
