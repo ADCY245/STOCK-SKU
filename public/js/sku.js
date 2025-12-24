@@ -136,7 +136,7 @@ function generateSKU() {
 
     let sku = `${companyNumeric}.${brandNumeric}.${importedCode}${dimensions}`;
     if (barring === 'yes') {
-        sku += `-${barNumber}`;
+        sku += `.${barNumber}`;
     } else if (barring === 'no' || !barring) {
         // No bar added
     }
