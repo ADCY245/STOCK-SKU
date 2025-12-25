@@ -20,6 +20,21 @@ app.register_blueprint(sku_bp, url_prefix='/api')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
 
+# Serve stock-in page
+@app.route('/stock-in.html')
+def serve_stock_in():
+    return send_from_directory(app.static_folder, 'stock-in.html')
+
+# Serve products page
+@app.route('/products.html')
+def serve_products():
+    return send_from_directory(app.static_folder, 'products.html')
+
+# Serve other static pages
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
+
 # Serve favicon
 @app.route('/favicon.ico')
 def serve_favicon():

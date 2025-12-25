@@ -213,7 +213,7 @@ if (typeof api !== 'undefined') {
     });
 } else {
     // Fallback if api.js not loaded
-    const API_BASE = 'http://localhost:5000/api';
+    const API_BASE = '/api';
     
     async function apiCall(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;

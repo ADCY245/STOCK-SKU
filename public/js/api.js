@@ -1,5 +1,5 @@
-// API base URL
-const API_BASE = 'http://localhost:5000/api';
+// API base URL - use relative path for same-origin requests
+const API_BASE = '/api';
 
 // Helper function to make API calls
 async function apiCall(endpoint, options = {}) {
