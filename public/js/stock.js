@@ -17,30 +17,9 @@ async function loadProductsForStock() {
     }
 }
 
-// Load product names based on product type
-async function loadProductNames() {
-    const productType = document.getElementById('product-type').value;
-    const productNameSelect = document.getElementById('product-name');
-    
-    if (!productType) {
-        productNameSelect.innerHTML = '<option value="">Select Product Type First</option>';
-        return;
-    }
-    
-    try {
-        const products = await api.getProducts();
-        const filteredProducts = products.filter(p => p.category === productType);
-        
-        productNameSelect.innerHTML = '<option value="">Select Product</option>';
-        filteredProducts.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product._id;
-            option.textContent = product.name;
-            productNameSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error loading product names:', error);
-    }
+// Load product names based on product type (no longer needed for text input)
+function loadProductNames() {
+    // Function kept for compatibility but no longer needed since we use text input
 }
 
 // Calculate square meters from length and width with unit conversion
@@ -119,7 +98,7 @@ if (document.getElementById('stock-in-form')) {
         
         const formData = {
             productType: document.getElementById('product-type').value,
-            productId: document.getElementById('product-name').value,
+            productName: document.getElementById('product-name').value,
             length: parseFloat(document.getElementById('length').value),
             width: parseFloat(document.getElementById('width').value),
             thickness: parseFloat(document.getElementById('thickness').value),
@@ -143,8 +122,7 @@ if (document.getElementById('stock-in-form')) {
 
     document.addEventListener('DOMContentLoaded', () => {
         loadProductsForStock();
-        // Set today's date as default
-        document.getElementById('import-date').valueAsDate = new Date();
+        // Import date is now blank by default
     });
 }
 

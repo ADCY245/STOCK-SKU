@@ -65,16 +65,40 @@ def issue_stock():
 def add_stock_detailed():
     data = request.get_json()
     
-    required_fields = ['productType', 'productId', 'length', 'width', 'thickness', 'rollNumber', 'sqMtr']
+    required_fields = ['productType', 'productName', 'length', 'width', 'thickness', 'rollNumber', 'sqMtr']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
 
     try:
+        # Create or find product
+        from db.database import db
+        
+        # Check if product already exists
+        existing_product = db.products.find_one({
+            'name': data['productName'],
+            'category': data['productType']
+        })
+        
+        if not existing_product:
+            # Create new product
+            product_data = {
+                'name': data['productName'],
+                'category': data['productType'],
+                'stock': 0,
+                'imported': True,
+                'createdAt': datetime.utcnow()
+            }
+            product_result = db.products.insert_one(product_data)
+            product_id = str(product_result.inserted_id)
+        else:
+            product_id = str(existing_product['_id'])
+        
         # Create detailed stock record
         stock_data = {
             'productType': data['productType'],
-            'productId': data['productId'],
+            'productName': data['productName'],
+            'productId': product_id,
             'length': data['length'],
             'width': data['width'],
             'thickness': data['thickness'],
@@ -92,13 +116,14 @@ def add_stock_detailed():
         result = db.detailed_stock.insert_one(stock_data)
         
         # Also update the main product stock
-        product = Product.get_by_id(data['productId'])
+        from models.product import Product
+        product = Product.get_by_id(product_id)
         if product:
             new_stock = product['stock'] + data['sqMtr']
-            Product.update_stock(data['productId'], new_stock)
+            Product.update_stock(product_id, new_stock)
             
             # Record transaction
-            transaction = StockTransaction(data['productId'], data['sqMtr'], 'in')
+            transaction = StockTransaction(product_id, data['sqMtr'], 'in')
             transaction.save()
         
         return jsonify({'message': 'Stock added successfully', 'id': str(result.inserted_id)}), 200
