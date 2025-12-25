@@ -48,7 +48,12 @@ function displayProducts() {
                 (product.dimensions?.width || 0);
             const calculatedSqMtr = lengthInMtr * widthInMtr;
             
-            stockQuantity = lengthInMtr.toFixed(2); // Length in meters
+            // For underpacking, stock quantity is width; for others, it's length
+            if (product.category === 'underpacking') {
+                stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
+            } else {
+                stockQuantity = lengthInMtr.toFixed(2); // Length in meters for other rolls
+            }
             stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
         } else {
             // Default case for other products
@@ -210,7 +215,12 @@ function exportToExcel() {
                     (product.dimensions?.width || 0);
                 const calculatedSqMtr = lengthInMtr * widthInMtr;
                 
-                stockQuantity = lengthInMtr.toFixed(2); // Length in meters
+                // For underpacking, stock quantity is width; for others, it's length
+                if (product.category === 'underpacking') {
+                    stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
+                } else {
+                    stockQuantity = lengthInMtr.toFixed(2); // Length in meters for other rolls
+                }
                 stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
             } else {
                 // Default case for other products
