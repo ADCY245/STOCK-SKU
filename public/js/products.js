@@ -24,15 +24,26 @@ function displayProducts() {
     filteredProducts.forEach(product => {
         const row = document.createElement('tr');
         const stockLevel = product.stock || 0;
-        const status = getStockStatus(stockLevel);
+        const isBlanketPieces = product.category === 'blankets' && 
+                              product.dimensions && 
+                              product.dimensions.numberOfPieces;
+        const status = getStockStatus(stockLevel, isBlanketPieces);
         const statusClass = getStatusClass(status);
         const lastUpdated = product.lastUpdated ? 
             new Date(product.lastUpdated).toLocaleDateString() : 'Never';
 
+        // Display stock based on type
+        let stockDisplay;
+        if (isBlanketPieces) {
+            stockDisplay = `${stockLevel.toFixed(0)} pieces`;
+        } else {
+            stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
+        }
+
         row.innerHTML = `
             <td>${product.name}</td>
             <td>${product.category}</td>
-            <td>${stockLevel.toFixed(2)} sq.mtr</td>
+            <td>${stockDisplay}</td>
             <td>${lastUpdated}</td>
             <td><span class="status ${statusClass}">${status}</span></td>
         `;
@@ -41,11 +52,20 @@ function displayProducts() {
 }
 
 // Get stock status text
-function getStockStatus(stock) {
-    if (stock === 0) return 'Out of Stock';
-    if (stock < 10) return 'Low Stock';
-    if (stock < 50) return 'Medium Stock';
-    return 'In Stock';
+function getStockStatus(stock, isBlanketPieces = false) {
+    if (isBlanketPieces) {
+        // Different thresholds for blanket pieces
+        if (stock === 0) return 'Out of Stock';
+        if (stock < 3) return 'Low Stock';
+        if (stock < 10) return 'Medium Stock';
+        return 'In Stock';
+    } else {
+        // Original thresholds for sq.mtr
+        if (stock === 0) return 'Out of Stock';
+        if (stock < 10) return 'Low Stock';
+        if (stock < 50) return 'Medium Stock';
+        return 'In Stock';
+    }
 }
 
 // Get status CSS class
@@ -127,19 +147,30 @@ function exportToExcel() {
     }
 
     // Create CSV content
-    const headers = ['Product Name', 'Category', 'Current Stock (sq.mtr)', 'Last Updated', 'Status'];
+    const headers = ['Product Name', 'Category', 'Current Stock', 'Last Updated', 'Status'];
     const csvContent = [
         headers.join(','),
         ...filteredProducts.map(product => {
             const stockLevel = product.stock || 0;
-            const status = getStockStatus(stockLevel);
+            const isBlanketPieces = product.category === 'blankets' && 
+                                  product.dimensions && 
+                                  product.dimensions.numberOfPieces;
+            const status = getStockStatus(stockLevel, isBlanketPieces);
             const lastUpdated = product.lastUpdated ? 
                 new Date(product.lastUpdated).toLocaleDateString() : 'Never';
+            
+            // Display stock based on type
+            let stockDisplay;
+            if (isBlanketPieces) {
+                stockDisplay = `${stockLevel.toFixed(0)} pieces`;
+            } else {
+                stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
+            }
             
             return [
                 `"${product.name}"`,
                 `"${product.category}"`,
-                stockLevel.toFixed(2),
+                `"${stockDisplay}"`,
                 `"${lastUpdated}"`,
                 `"${status}"`
             ].join(',');
