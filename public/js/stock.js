@@ -79,6 +79,31 @@ function calculateSqMtr() {
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
 }
 
+// Calculate square meters for pieces
+function calculatePiecesSqMtr() {
+    const productType = document.getElementById('product-type').value;
+    const numberOfPieces = parseInt(document.getElementById('number-of-pieces').value) || 0;
+    
+    if (productType === 'blankets' && numberOfPieces > 0) {
+        const width = parseFloat(document.getElementById('width').value) || 0;
+        const length = parseFloat(document.getElementById('length').value) || 0;
+        const widthUnit = document.getElementById('width-unit').value;
+        const lengthUnit = document.getElementById('length-unit').value;
+        
+        // Convert to meters
+        const widthInMtr = widthUnit === 'mm' ? width / 1000 : width;
+        const lengthInMtr = lengthUnit === 'mm' ? length / 1000 : length;
+        
+        // Calculate sq.mtr per piece and total
+        const sqMtrPerPiece = widthInMtr * lengthInMtr;
+        const totalSqMtr = sqMtrPerPiece * numberOfPieces;
+        
+        document.getElementById('pieces-sq-mtr').value = totalSqMtr.toFixed(4);
+    } else {
+        document.getElementById('pieces-sq-mtr').value = '';
+    }
+}
+
 // Toggle between roll and pieces fields
 function toggleStockType() {
     const stockType = document.getElementById('stock-type').value;
@@ -230,7 +255,8 @@ if (document.getElementById('stock-in-form')) {
             thicknessUnit: document.getElementById('thickness-unit').value,
             rollNumber: document.getElementById('roll-number').value,
             numberOfPieces: stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) : null,
-            sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : null,
+            sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : 
+                   stockType === 'pieces' ? parseFloat(document.getElementById('pieces-sq-mtr').value) : null,
             importDate: document.getElementById('import-date').value || null,
             takenDate: document.getElementById('taken-date').value || null
         };
@@ -249,7 +275,10 @@ if (document.getElementById('stock-in-form')) {
             if (response.ok) {
                 document.getElementById('stock-in-form').reset();
                 document.getElementById('sq-mtr').value = '';
+                document.getElementById('pieces-sq-mtr').value = '';
                 alert('Stock added successfully');
+                // Auto-refresh products display
+                refreshProductsDisplay();
             } else if (response.status === 409 && result.error === 'DUPLICATE_ROLL') {
                 // Handle duplicate roll
                 handleDuplicateRoll(result, formData);
@@ -277,9 +306,50 @@ if (document.getElementById('stock-in-form')) {
             stockTypeSelect.addEventListener('change', updateRollNumberRequirement);
         }
         
+        // Initialize form with defaults
+        initializeFormDefaults();
+        
         // Initial call to set correct visibility
         updateRollNumberRequirement();
     });
+    
+    // Initialize form with default values
+    function initializeFormDefaults() {
+        // Set default stock type to roll
+        const stockTypeSelect = document.getElementById('stock-type');
+        if (stockTypeSelect) {
+            stockTypeSelect.value = 'roll';
+        }
+        
+        // Call toggleStockType to show correct fields
+        toggleStockType();
+    }
+}
+
+// Refresh products display on all pages
+function refreshProductsDisplay() {
+    // Check if we're on the products page
+    if (typeof displayProducts === 'function') {
+        // Reload products and display them
+        if (typeof api !== 'undefined' && api.getProducts) {
+            api.getProducts().then(products => {
+                if (typeof filteredProducts !== 'undefined') {
+                    filteredProducts = products;
+                    displayProducts();
+                }
+            }).catch(error => {
+                console.error('Error refreshing products:', error);
+            });
+        }
+    }
+    
+    // Check if we're on the dashboard page
+    if (typeof updateDashboard === 'function') {
+        updateDashboard();
+    }
+    
+    // Reload products for stock forms
+    loadProductsForStock();
 }
 
 // Handle duplicate roll detection

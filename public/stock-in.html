@@ -40,7 +40,7 @@
                     <label for="product-type">Product Type:</label>
                     <select id="product-type" onchange="loadProductNames()" required>
                         <option value="">Select Product Type</option>
-                        <option value="blankets">Blankets</option>
+                        <option value="blankets" selected>Blankets</option>
                         <option value="litho perf">Litho Perf</option>
                         <option value="underpacking">Underpacking</option>
                         <option value="rules">Rules</option>
@@ -59,18 +59,18 @@
                 </div>
 
                 <div class="form-row">
-                    <label for="length">Length:</label>
-                    <input type="number" id="length" step="0.01" required onchange="calculateSqMtr()">
-                    <select id="length-unit" onchange="calculateSqMtr()">
+                    <label for="width">Width:</label>
+                    <input type="number" id="width" step="0.01" required onchange="calculateSqMtr()">
+                    <select id="width-unit" onchange="calculateSqMtr()">
                         <option value="mm">mm</option>
                         <option value="mtr">mtr</option>
                     </select>
                 </div>
 
                 <div class="form-row">
-                    <label for="width">Width:</label>
-                    <input type="number" id="width" step="0.01" required onchange="calculateSqMtr()">
-                    <select id="width-unit" onchange="calculateSqMtr()">
+                    <label for="length">Length:</label>
+                    <input type="number" id="length" step="0.01" required onchange="calculateSqMtr()">
+                    <select id="length-unit" onchange="calculateSqMtr()">
                         <option value="mm">mm</option>
                         <option value="mtr">mtr</option>
                     </select>
@@ -89,7 +89,7 @@
                     <label for="stock-type">Stock Type:</label>
                     <select id="stock-type" onchange="toggleStockType()" required>
                         <option value="">Select Stock Type</option>
-                        <option value="roll">Roll</option>
+                        <option value="roll" selected>Roll</option>
                         <option value="pieces">Cut Pieces</option>
                     </select>
                 </div>
@@ -111,7 +111,11 @@
                 <div id="pieces-fields" style="display: none;">
                     <div class="form-row">
                         <label for="number-of-pieces">Number of Pieces:</label>
-                        <input type="number" id="number-of-pieces" step="1" min="1">
+                        <input type="number" id="number-of-pieces" step="1" min="1" onchange="calculatePiecesSqMtr()">
+                    </div>
+                    <div class="form-row">
+                        <label for="pieces-sq-mtr">Sq. Mtr (Calculated):</label>
+                        <input type="number" id="pieces-sq-mtr" step="0.01" readonly>
                     </div>
                 </div>
 
