@@ -20,6 +20,34 @@ async function loadProductsForStock() {
 // Load product names based on product type (no longer needed for text input)
 function loadProductNames() {
     // Function kept for compatibility but no longer needed since we use text input
+    updateRollNumberRequirement();
+}
+
+// Update roll number requirement based on product type and stock type
+function updateRollNumberRequirement() {
+    const productType = document.getElementById('product-type').value;
+    const stockType = document.getElementById('stock-type').value;
+    const rollNumberRow = document.getElementById('roll-number-row');
+    const rollNumberInput = document.getElementById('roll-number');
+    
+    // Roll number is required only for blankets with roll stock type
+    if (productType === 'blankets' && stockType === 'roll') {
+        rollNumberInput.required = true;
+        rollNumberRow.style.display = 'flex';
+    } else if (productType === 'blankets' && stockType === 'pieces') {
+        // For blankets with cut pieces, hide roll number
+        rollNumberInput.required = false;
+        rollNumberInput.value = '';
+        rollNumberRow.style.display = 'none';
+    } else if (productType && productType !== 'blankets') {
+        // For non-blanket products, make roll number optional
+        rollNumberInput.required = false;
+        rollNumberRow.style.display = 'flex';
+    } else {
+        // No selection yet
+        rollNumberInput.required = false;
+        rollNumberRow.style.display = 'flex';
+    }
 }
 
 // Calculate square meters from length and width with unit conversion
@@ -87,6 +115,9 @@ function toggleStockType() {
         lengthUnit.required = false;
         widthUnit.required = false;
     }
+    
+    // Update roll number requirement
+    updateRollNumberRequirement();
 }
 
 // Download Excel template
@@ -114,7 +145,7 @@ function downloadTemplate() {
         '1000',                        // Length (number, required for roll)
         '500',                         // Width (number, required for roll)
         '2.5',                         // Thickness (number, required)
-        'ROLL001',                     // Roll number (text, required)
+        'ROLL001',                     // Roll number (text, required for blanket rolls, optional for others)
         '',                            // Number of pieces (number, required for pieces, leave blank for roll)
         '50.00',                       // Sq.mtr (number, required for roll, leave blank for pieces)
         '2024-12-25',                  // Import date (YYYY-MM-DD format, optional)

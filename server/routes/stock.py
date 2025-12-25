@@ -65,10 +65,15 @@ def issue_stock():
 def add_stock_detailed():
     data = request.get_json()
     
-    required_fields = ['productType', 'productName', 'stockType', 'thickness', 'rollNumber']
+    required_fields = ['productType', 'productName', 'stockType', 'thickness']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
+
+    # Validate roll number requirement
+    if data['productType'] == 'blankets' and data['stockType'] == 'roll':
+        if not data.get('rollNumber'):
+            return jsonify({'error': 'Roll number is required for blanket rolls'}), 400
 
     # Validate stock type specific fields
     if data['stockType'] == 'roll':
@@ -110,7 +115,7 @@ def add_stock_detailed():
             'stockType': data['stockType'],
             'thickness': data['thickness'],
             'thicknessUnit': data.get('thicknessUnit', 'mm'),
-            'rollNumber': data['rollNumber'],
+            'rollNumber': data.get('rollNumber', None),
             'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
             'takenDate': datetime.strptime(data['takenDate'], '%Y-%m-%d') if data.get('takenDate') else None,
             'createdAt': datetime.utcnow()
