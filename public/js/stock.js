@@ -51,6 +51,51 @@ function calculateSqMtr() {
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
 }
 
+// Download Excel template
+function downloadTemplate() {
+    // Create CSV template with proper headers
+    const headers = [
+        'productType',
+        'productName', 
+        'length',
+        'width',
+        'thickness',
+        'rollNumber',
+        'importDate',
+        'takenDate'
+    ];
+    
+    // Create sample data row with comments
+    const sampleRow = [
+        'blankets',                    // Product type: blankets, litho perf, underpacking, rules, matrix, chemicals, film, plate, ink, other
+        'Sample Blanket Product',      // Product name (text, can be long)
+        '1000',                        // Length (number)
+        '500',                         // Width (number)
+        '2.5',                         // Thickness (number)
+        'ROLL001',                     // Roll number (text)
+        '2024-12-25',                  // Import date (YYYY-MM-DD format, optional)
+        '2024-12-25'                   // Taken date (YYYY-MM-DD format, optional)
+    ];
+    
+    const csvContent = [
+        headers.join(','),
+        sampleRow.join(',')
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'stock_import_template.csv');
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 // Handle Excel file upload
 async function uploadExcel() {
     const fileInput = document.getElementById('excel-file');

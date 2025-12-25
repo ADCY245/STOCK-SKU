@@ -208,6 +208,22 @@ button[type="button"]:hover {
     background-color: #0056b3;
 }
 
+.template-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+
+.template-button:hover {
+    background-color: #5a6268;
+}
+
 input[readonly] {
     background-color: #f8f9fa;
     color: #6c757d;
