@@ -94,18 +94,55 @@ def add_stock_detailed():
         })
         
         if not existing_product:
-            # Create new product
+            # Create new product with dimensions
+            dimensions = {}
+            if data['stockType'] == 'roll':
+                dimensions = {
+                    'length': data['length'],
+                    'width': data['width'],
+                    'lengthUnit': data.get('lengthUnit', 'mm'),
+                    'widthUnit': data.get('widthUnit', 'mm'),
+                    'thickness': data['thickness'],
+                    'thicknessUnit': data.get('thicknessUnit', 'mm')
+                }
+            elif data['stockType'] == 'pieces':
+                dimensions = {
+                    'thickness': data['thickness'],
+                    'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                    'numberOfPieces': data['numberOfPieces']
+                }
+            
             product_data = {
                 'name': data['productName'],
                 'category': data['productType'],
                 'stock': 0,
                 'imported': True,
+                'dimensions': dimensions,
                 'createdAt': datetime.utcnow()
             }
             product_result = db.products.insert_one(product_data)
             product_id = str(product_result.inserted_id)
         else:
             product_id = str(existing_product['_id'])
+            # Update dimensions if they exist and product doesn't have them
+            if not existing_product.get('dimensions') and (data['length'] or data['width'] or data['thickness']):
+                dimensions = {}
+                if data['stockType'] == 'roll':
+                    dimensions = {
+                        'length': data['length'],
+                        'width': data['width'],
+                        'lengthUnit': data.get('lengthUnit', 'mm'),
+                        'widthUnit': data.get('widthUnit', 'mm'),
+                        'thickness': data['thickness'],
+                        'thicknessUnit': data.get('thicknessUnit', 'mm')
+                    }
+                elif data['stockType'] == 'pieces':
+                    dimensions = {
+                        'thickness': data['thickness'],
+                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                        'numberOfPieces': data['numberOfPieces']
+                    }
+                Product.update_dimensions(product_id, dimensions)
         
         # Create detailed stock record
         stock_data = {
