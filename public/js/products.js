@@ -32,21 +32,35 @@ function displayProducts() {
         const lastUpdated = product.lastUpdated ? 
             new Date(product.lastUpdated).toLocaleDateString() : 'Never';
 
-        // Display stock based on type
-        let stockDisplay;
+        // Determine stock quantity and size based on type
+        let stockQuantity, stockSize;
         if (isBlanketPieces) {
-            const pieces = stockLevel.toFixed(0);
+            stockQuantity = stockLevel.toFixed(0); // Number of pieces
             const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-            const totalSqMtr = product.dimensions?.totalSqMtr || (pieces * sqMtrPerPiece);
-            stockDisplay = `${pieces} pieces (${totalSqMtr.toFixed(2)} sq.mtr)`;
+            const totalSqMtr = product.dimensions?.totalSqMtr || (stockLevel * sqMtrPerPiece);
+            stockSize = `${totalSqMtr.toFixed(2)} sq.mtr`;
+        } else if (product.dimensions?.stockType === 'roll') {
+            // For rolls, quantity is length in meters, size is sq.mtr
+            const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
+                (product.dimensions?.length || 0) / 1000 : 
+                (product.dimensions?.length || 0);
+            stockQuantity = lengthInMtr.toFixed(2); // Length in meters
+            stockSize = `${stockLevel.toFixed(2)} sq.mtr`;
         } else {
-            stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
+            // Default case for other products
+            stockQuantity = stockLevel.toFixed(2);
+            stockSize = 'sq.mtr';
         }
+        
+        // Get roll number from dimensions or detailed stock
+        const rollNumber = product.dimensions?.rollNumber || 'N/A';
 
         row.innerHTML = `
             <td>${product.name}</td>
             <td>${product.category}</td>
-            <td>${stockDisplay}</td>
+            <td>${stockQuantity}</td>
+            <td>${stockSize}</td>
+            <td>${rollNumber}</td>
             <td>${lastUpdated}</td>
             <td><span class="status ${statusClass}">${status}</span></td>
         `;
@@ -150,7 +164,7 @@ function exportToExcel() {
     }
 
     // Create CSV content
-    const headers = ['Product Name', 'Category', 'Current Stock', 'Last Updated', 'Status'];
+    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Roll Number', 'Last Updated', 'Status'];
     const csvContent = [
         headers.join(','),
         ...filteredProducts.map(product => {
@@ -162,21 +176,35 @@ function exportToExcel() {
             const lastUpdated = product.lastUpdated ? 
                 new Date(product.lastUpdated).toLocaleDateString() : 'Never';
             
-            // Display stock based on type
-            let stockDisplay;
+            // Determine stock quantity and size based on type
+            let stockQuantity, stockSize;
             if (isBlanketPieces) {
-                const pieces = stockLevel.toFixed(0);
+                stockQuantity = stockLevel.toFixed(0); // Number of pieces
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-                const totalSqMtr = product.dimensions?.totalSqMtr || (pieces * sqMtrPerPiece);
-                stockDisplay = `${pieces} pieces (${totalSqMtr.toFixed(2)} sq.mtr)`;
+                const totalSqMtr = product.dimensions?.totalSqMtr || (stockLevel * sqMtrPerPiece);
+                stockSize = `${totalSqMtr.toFixed(2)} sq.mtr`;
+            } else if (product.dimensions?.stockType === 'roll') {
+                // For rolls, quantity is length in meters, size is sq.mtr
+                const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
+                    (product.dimensions?.length || 0) / 1000 : 
+                    (product.dimensions?.length || 0);
+                stockQuantity = lengthInMtr.toFixed(2); // Length in meters
+                stockSize = `${stockLevel.toFixed(2)} sq.mtr`;
             } else {
-                stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
+                // Default case for other products
+                stockQuantity = stockLevel.toFixed(2);
+                stockSize = 'sq.mtr';
             }
+            
+            // Get roll number from dimensions
+            const rollNumber = product.dimensions?.rollNumber || 'N/A';
             
             return [
                 `"${product.name}"`,
                 `"${product.category}"`,
-                `"${stockDisplay}"`,
+                `"${stockQuantity}"`,
+                `"${stockSize}"`,
+                `"${rollNumber}"`,
                 `"${lastUpdated}"`,
                 `"${status}"`
             ].join(',');
