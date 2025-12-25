@@ -38,8 +38,8 @@ function displayProducts() {
             stockQuantity = stockLevel.toFixed(0); // Number of pieces
             const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
             stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
-        } else if (product.dimensions?.stockType === 'roll') {
-            // For rolls, quantity is length in meters, size is calculated sq.mtr
+        } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
+            // For rolls (check if has length and width dimensions but not blanket pieces)
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                 (product.dimensions?.length || 0) / 1000 : 
                 (product.dimensions?.length || 0);
@@ -186,8 +186,8 @@ function exportToExcel() {
                 stockQuantity = stockLevel.toFixed(0); // Number of pieces
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
                 stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
-            } else if (product.dimensions?.stockType === 'roll') {
-                // For rolls, quantity is length in meters, size is calculated sq.mtr
+            } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
+                // For rolls (check if has length and width dimensions but not blanket pieces)
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                     (product.dimensions?.length || 0) / 1000 : 
                     (product.dimensions?.length || 0);
