@@ -39,12 +39,17 @@ function displayProducts() {
             const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
             stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
         } else if (product.dimensions?.stockType === 'roll') {
-            // For rolls, quantity is length in meters, size is sq.mtr
+            // For rolls, quantity is length in meters, size is calculated sq.mtr
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                 (product.dimensions?.length || 0) / 1000 : 
                 (product.dimensions?.length || 0);
+            const widthInMtr = product.dimensions?.widthUnit === 'mm' ? 
+                (product.dimensions?.width || 0) / 1000 : 
+                (product.dimensions?.width || 0);
+            const calculatedSqMtr = lengthInMtr * widthInMtr;
+            
             stockQuantity = lengthInMtr.toFixed(2); // Length in meters
-            stockSize = `${stockLevel.toFixed(2)} sq.mtr`;
+            stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
         } else {
             // Default case for other products
             stockQuantity = stockLevel.toFixed(2);
@@ -182,12 +187,17 @@ function exportToExcel() {
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
                 stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
             } else if (product.dimensions?.stockType === 'roll') {
-                // For rolls, quantity is length in meters, size is sq.mtr
+                // For rolls, quantity is length in meters, size is calculated sq.mtr
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                     (product.dimensions?.length || 0) / 1000 : 
                     (product.dimensions?.length || 0);
+                const widthInMtr = product.dimensions?.widthUnit === 'mm' ? 
+                    (product.dimensions?.width || 0) / 1000 : 
+                    (product.dimensions?.width || 0);
+                const calculatedSqMtr = lengthInMtr * widthInMtr;
+                
                 stockQuantity = lengthInMtr.toFixed(2); // Length in meters
-                stockSize = `${stockLevel.toFixed(2)} sq.mtr`;
+                stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
             } else {
                 // Default case for other products
                 stockQuantity = stockLevel.toFixed(2);
