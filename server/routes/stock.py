@@ -65,7 +65,7 @@ def issue_stock():
 def add_stock_detailed():
     data = request.get_json()
     
-    required_fields = ['productType', 'productId', 'length', 'width', 'thickness', 'rollNumber', 'importDate', 'sqMtr']
+    required_fields = ['productType', 'productId', 'length', 'width', 'thickness', 'rollNumber', 'sqMtr']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
@@ -78,8 +78,11 @@ def add_stock_detailed():
             'length': data['length'],
             'width': data['width'],
             'thickness': data['thickness'],
+            'lengthUnit': data.get('lengthUnit', 'mm'),
+            'widthUnit': data.get('widthUnit', 'mm'),
+            'thicknessUnit': data.get('thicknessUnit', 'mm'),
             'rollNumber': data['rollNumber'],
-            'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d'),
+            'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
             'sqMtr': data['sqMtr'],
             'createdAt': datetime.utcnow()
         }

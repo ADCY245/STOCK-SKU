@@ -180,6 +180,15 @@ th {
     margin-bottom: 0;
 }
 
+.form-row input[type="number"] {
+    max-width: 150px;
+    margin-right: 0.5rem;
+}
+
+.form-row select {
+    max-width: 100px;
+}
+
 #excel-file {
     margin-bottom: 1rem;
 }

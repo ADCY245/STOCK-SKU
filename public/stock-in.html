@@ -39,10 +39,15 @@
                     <label for="product-type">Product Type:</label>
                     <select id="product-type" onchange="loadProductNames()" required>
                         <option value="">Select Product Type</option>
+                        <option value="blankets">Blankets</option>
+                        <option value="litho perf">Litho Perf</option>
+                        <option value="underpacking">Underpacking</option>
+                        <option value="rules">Rules</option>
+                        <option value="matrix">Matrix</option>
+                        <option value="chemicals">Chemicals</option>
                         <option value="film">Film</option>
                         <option value="plate">Plate</option>
                         <option value="ink">Ink</option>
-                        <option value="chemical">Chemical</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
@@ -55,18 +60,30 @@
                 </div>
 
                 <div class="form-row">
-                    <label for="length">Length (mm/mtr):</label>
+                    <label for="length">Length:</label>
                     <input type="number" id="length" step="0.01" required onchange="calculateSqMtr()">
+                    <select id="length-unit" onchange="calculateSqMtr()">
+                        <option value="mm">mm</option>
+                        <option value="mtr">mtr</option>
+                    </select>
                 </div>
 
                 <div class="form-row">
-                    <label for="width">Width (mm/mtr):</label>
+                    <label for="width">Width:</label>
                     <input type="number" id="width" step="0.01" required onchange="calculateSqMtr()">
+                    <select id="width-unit" onchange="calculateSqMtr()">
+                        <option value="mm">mm</option>
+                        <option value="mtr">mtr</option>
+                    </select>
                 </div>
 
                 <div class="form-row">
-                    <label for="thickness">Thickness (mm/micron):</label>
+                    <label for="thickness">Thickness:</label>
                     <input type="number" id="thickness" step="0.01" required>
+                    <select id="thickness-unit">
+                        <option value="mm">mm</option>
+                        <option value="micron">micron</option>
+                    </select>
                 </div>
 
                 <div class="form-row">
@@ -76,7 +93,7 @@
 
                 <div class="form-row">
                     <label for="import-date">Date of Import:</label>
-                    <input type="date" id="import-date" required>
+                    <input type="date" id="import-date">
                 </div>
 
                 <div class="form-row">

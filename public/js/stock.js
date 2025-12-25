@@ -43,15 +43,31 @@ async function loadProductNames() {
     }
 }
 
-// Calculate square meters from length and width
+// Calculate square meters from length and width with unit conversion
 function calculateSqMtr() {
     const length = parseFloat(document.getElementById('length').value) || 0;
     const width = parseFloat(document.getElementById('width').value) || 0;
+    const lengthUnit = document.getElementById('length-unit').value;
+    const widthUnit = document.getElementById('width-unit').value;
     
-    // Convert mm to meters if needed (assuming input is in mm)
-    const lengthInMtr = length / 1000;
-    const widthInMtr = width / 1000;
+    // Convert everything to meters first
+    let lengthInMtr, widthInMtr;
     
+    // Convert length to meters
+    if (lengthUnit === 'mm') {
+        lengthInMtr = length / 1000; // mm to mtr
+    } else {
+        lengthInMtr = length; // already in mtr
+    }
+    
+    // Convert width to meters
+    if (widthUnit === 'mm') {
+        widthInMtr = width / 1000; // mm to mtr
+    } else {
+        widthInMtr = width; // already in mtr
+    }
+    
+    // Calculate square meters
     const sqMtr = lengthInMtr * widthInMtr;
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
 }
@@ -107,8 +123,11 @@ if (document.getElementById('stock-in-form')) {
             length: parseFloat(document.getElementById('length').value),
             width: parseFloat(document.getElementById('width').value),
             thickness: parseFloat(document.getElementById('thickness').value),
+            lengthUnit: document.getElementById('length-unit').value,
+            widthUnit: document.getElementById('width-unit').value,
+            thicknessUnit: document.getElementById('thickness-unit').value,
             rollNumber: document.getElementById('roll-number').value,
-            importDate: document.getElementById('import-date').value,
+            importDate: document.getElementById('import-date').value || null,
             sqMtr: parseFloat(document.getElementById('sq-mtr').value)
         };
 
