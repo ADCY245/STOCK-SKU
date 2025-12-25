@@ -87,11 +87,34 @@ def add_stock_detailed():
         # Create or find product
         from db.database import db
         
-        # Check if product already exists
-        existing_product = db.products.find_one({
-            'name': data['productName'],
-            'category': data['productType']
-        })
+        # Check if product already exists with specific criteria
+        if data['stockType'] == 'roll':
+            # For rolls, check by name, category, AND roll number OR length
+            existing_product = db.products.find_one({
+                'name': data['productName'],
+                'category': data['productType'],
+                'dimensions.stockType': 'roll',
+                '$or': [
+                    {'dimensions.rollNumber': data.get('rollNumber')},
+                    {'$and': [
+                        {'dimensions.length': data['length']},
+                        {'dimensions.width': data['width']}
+                    ]}
+                ]
+            })
+        elif data['stockType'] == 'pieces':
+            # For cut pieces, check by name, category, AND stockType pieces
+            existing_product = db.products.find_one({
+                'name': data['productName'],
+                'category': data['productType'],
+                'dimensions.stockType': 'pieces'
+            })
+        else:
+            # Fallback to original logic
+            existing_product = db.products.find_one({
+                'name': data['productName'],
+                'category': data['productType']
+            })
         
         if not existing_product:
             # Create new product with dimensions

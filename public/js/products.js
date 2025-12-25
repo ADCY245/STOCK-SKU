@@ -57,10 +57,26 @@ function displayProducts() {
         }
         
         // Get roll number from dimensions or detailed stock
-        const rollNumber = product.dimensions?.rollNumber || 'N/A';
+        let rollNumber = product.dimensions?.rollNumber || 'N/A';
+        
+        // Create differentiated product name for display
+        let displayName = product.name;
+        if (product.dimensions?.stockType === 'roll' && rollNumber !== 'N/A') {
+            displayName += ` (Roll: ${rollNumber})`;
+        } else if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
+            const length = product.dimensions.lengthUnit === 'mm' ? 
+                (product.dimensions.length / 1000).toFixed(2) + 'm' : 
+                product.dimensions.length + 'm';
+            const width = product.dimensions.widthUnit === 'mm' ? 
+                (product.dimensions.width / 1000).toFixed(2) + 'm' : 
+                product.dimensions.width + 'm';
+            displayName += ` (${length} x ${width})`;
+        } else if (isBlanketPieces) {
+            displayName += ' (Pieces)';
+        }
 
         row.innerHTML = `
-            <td>${product.name}</td>
+            <td>${displayName}</td>
             <td>${product.category}</td>
             <td>${stockQuantity}</td>
             <td>${stockSize}</td>
@@ -205,10 +221,26 @@ function exportToExcel() {
             }
             
             // Get roll number from dimensions
-            const rollNumber = product.dimensions?.rollNumber || 'N/A';
+            let rollNumber = product.dimensions?.rollNumber || 'N/A';
+            
+            // Create differentiated product name for display
+            let displayName = product.name;
+            if (product.dimensions?.stockType === 'roll' && rollNumber !== 'N/A') {
+                displayName += ` (Roll: ${rollNumber})`;
+            } else if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
+                const length = product.dimensions.lengthUnit === 'mm' ? 
+                    (product.dimensions.length / 1000).toFixed(2) + 'm' : 
+                    product.dimensions.length + 'm';
+                const width = product.dimensions.widthUnit === 'mm' ? 
+                    (product.dimensions.width / 1000).toFixed(2) + 'm' : 
+                    product.dimensions.width + 'm';
+                displayName += ` (${length} x ${width})`;
+            } else if (isBlanketPieces) {
+                displayName += ' (Pieces)';
+            }
             
             return [
-                `"${product.name}"`,
+                `"${displayName}"`,
                 `"${product.category}"`,
                 `"${stockQuantity}"`,
                 `"${stockSize}"`,
