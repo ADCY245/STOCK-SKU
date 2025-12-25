@@ -264,6 +264,21 @@ if (document.getElementById('stock-in-form')) {
     document.addEventListener('DOMContentLoaded', () => {
         loadProductsForStock();
         // Import date is now blank by default
+        
+        // Add event listeners for roll number visibility
+        const productTypeSelect = document.getElementById('product-type');
+        const stockTypeSelect = document.getElementById('stock-type');
+        
+        if (productTypeSelect) {
+            productTypeSelect.addEventListener('change', updateRollNumberRequirement);
+        }
+        
+        if (stockTypeSelect) {
+            stockTypeSelect.addEventListener('change', updateRollNumberRequirement);
+        }
+        
+        // Initial call to set correct visibility
+        updateRollNumberRequirement();
     });
 }
 
