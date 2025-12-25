@@ -236,10 +236,26 @@ if (document.getElementById('stock-in-form')) {
         };
 
         try {
-            await api.addStockDetailed(formData);
-            document.getElementById('stock-in-form').reset();
-            document.getElementById('sq-mtr').value = '';
-            alert('Stock added successfully');
+            const response = await fetch('/api/stock/in/detailed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                document.getElementById('stock-in-form').reset();
+                document.getElementById('sq-mtr').value = '';
+                alert('Stock added successfully');
+            } else if (response.status === 409 && result.error === 'DUPLICATE_ROLL') {
+                // Handle duplicate roll
+                handleDuplicateRoll(result, formData);
+            } else {
+                alert('Error adding stock: ' + result.error);
+            }
         } catch (error) {
             alert('Error adding stock: ' + error.message);
         }
@@ -249,6 +265,78 @@ if (document.getElementById('stock-in-form')) {
         loadProductsForStock();
         // Import date is now blank by default
     });
+}
+
+// Handle duplicate roll detection
+async function handleDuplicateRoll(errorResponse, formData) {
+    const existing = errorResponse.existingProduct;
+    const message = errorResponse.message;
+    
+    // Show confirmation dialog
+    const isDuplicate = confirm(
+        `${message}\n\n` +
+        `Existing Roll:\n` +
+        `Roll Number: ${existing.rollNumber}\n` +
+        `Length: ${existing.length}\n` +
+        `Width: ${existing.width}\n` +
+        `Import Date: ${existing.importDate}\n\n` +
+        `Is this a duplicate?\n\n` +
+        `Click OK if this IS a duplicate (entry will be discarded)\n` +
+        `Click CANCEL if this is NOT a duplicate (will ask for import date)`
+    );
+    
+    if (isDuplicate) {
+        // User confirmed it's a duplicate - discard the entry
+        alert('Duplicate entry discarded');
+        document.getElementById('stock-in-form').reset();
+        document.getElementById('sq-mtr').value = '';
+    } else {
+        // User says it's not a duplicate - ask for import date
+        const importDate = prompt('Please enter import date (YYYY-MM-DD) to differentiate this entry:');
+        
+        if (!importDate) {
+            alert('Import date is required for separate entry');
+            return;
+        }
+        
+        // Validate date format
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(importDate)) {
+            alert('Invalid date format. Please use YYYY-MM-DD');
+            return;
+        }
+        
+        try {
+            // Add with import date
+            const response = await fetch('/api/stock/in/detailed/confirm-duplicate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'add_with_date',
+                    rollData: {
+                        ...formData,
+                        importDate: importDate
+                    }
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert(`Stock added successfully as: ${result.uniqueName}`);
+                document.getElementById('stock-in-form').reset();
+                document.getElementById('sq-mtr').value = '';
+                // Reload products to show the new entry
+                loadProductsForStock();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error adding stock: ' + error.message);
+        }
+    }
 }
 
 // Handle stock out form (existing version)

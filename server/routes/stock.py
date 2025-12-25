@@ -116,6 +116,26 @@ def add_stock_detailed():
                 'category': data['productType']
             })
         
+        # Handle duplicate detection for rolls
+        if existing_product and data['stockType'] == 'roll':
+            return jsonify({
+                'error': 'DUPLICATE_ROLL',
+                'message': f'Roll "{data.get("rollNumber", "Unknown")}" for "{data["productName"]}" already exists with same dimensions.',
+                'existingProduct': {
+                    'name': existing_product['name'],
+                    'rollNumber': existing_product.get('dimensions', {}).get('rollNumber', 'N/A'),
+                    'length': existing_product.get('dimensions', {}).get('length', 'N/A'),
+                    'width': existing_product.get('dimensions', {}).get('width', 'N/A'),
+                    'importDate': existing_product.get('dimensions', {}).get('importDate', 'N/A')
+                },
+                'requiresConfirmation': True
+            }), 409  # 409 Conflict
+        
+        # Handle duplicate detection for pieces (accumulate)
+        elif existing_product and data['stockType'] == 'pieces':
+            # For pieces, we'll accumulate stock, so no duplicate warning needed
+            pass
+        
         if not existing_product:
             # Create new product with dimensions
             dimensions = {}
@@ -338,5 +358,89 @@ def upload_excel():
         
         return jsonify({'message': f'Successfully processed {inserted_count} records', 'count': inserted_count}), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@stock_bp.route('/stock/in/detailed/confirm-duplicate', methods=['POST'])
+def confirm_duplicate_roll():
+    """Handle duplicate roll confirmation - either delete or add with import date"""
+    try:
+        data = request.get_json()
+        action = data.get('action')  # 'delete' or 'add_with_date'
+        roll_data = data.get('rollData')
+        
+        if action == 'delete':
+            # User confirmed it's a duplicate, don't add anything
+            return jsonify({'message': 'Duplicate roll entry discarded'}), 200
+            
+        elif action == 'add_with_date':
+            # User wants to add as separate entry with import date
+            if not roll_data.get('importDate'):
+                return jsonify({'error': 'Import date is required for separate entry'}), 400
+            
+            # Create a unique product name with import date
+            import_date_str = roll_data['importDate']
+            unique_name = f"{roll_data['productName']} ({import_date_str})"
+            
+            # Check if this unique name already exists
+            existing_unique = db.products.find_one({
+                'name': unique_name,
+                'category': roll_data['productType']
+            })
+            
+            if existing_unique:
+                return jsonify({'error': 'Entry with this import date already exists'}), 400
+            
+            # Create new product with unique name
+            dimensions = {
+                'length': roll_data['length'],
+                'width': roll_data['width'],
+                'lengthUnit': roll_data.get('lengthUnit', 'mm'),
+                'widthUnit': roll_data.get('widthUnit', 'mm'),
+                'thickness': roll_data['thickness'],
+                'thicknessUnit': roll_data.get('thicknessUnit', 'mm'),
+                'rollNumber': roll_data.get('rollNumber'),
+                'stockType': 'roll',
+                'importDate': import_date_str
+            }
+            
+            product_data = {
+                'name': unique_name,
+                'category': roll_data['productType'],
+                'stock': roll_data.get('sqMtr', 0),
+                'imported': True,
+                'dimensions': dimensions,
+                'createdAt': datetime.utcnow()
+            }
+            
+            product_result = db.products.insert_one(product_data)
+            product_id = str(product_result.inserted_id)
+            
+            # Create detailed stock record
+            stock_data = {
+                'productType': roll_data['productType'],
+                'productName': unique_name,
+                'productId': product_id,
+                'stockType': 'roll',
+                'length': roll_data['length'],
+                'width': roll_data['width'],
+                'thickness': roll_data['thickness'],
+                'rollNumber': roll_data.get('rollNumber'),
+                'importDate': datetime.strptime(import_date_str, '%Y-%m-%d') if import_date_str else None,
+                'takenDate': datetime.strptime(roll_data['takenDate'], '%Y-%m-%d') if roll_data.get('takenDate') else None,
+                'sqMtr': roll_data.get('sqMtr'),
+                'createdAt': datetime.utcnow()
+            }
+            
+            db.detailed_stock.insert_one(stock_data)
+            
+            return jsonify({
+                'message': 'Roll added successfully with import date differentiation',
+                'uniqueName': unique_name
+            }), 200
+            
+        else:
+            return jsonify({'error': 'Invalid action'}), 400
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
