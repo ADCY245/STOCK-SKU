@@ -111,6 +111,22 @@ def add_stock_detailed():
                     'thicknessUnit': data.get('thicknessUnit', 'mm'),
                     'numberOfPieces': data['numberOfPieces']
                 }
+                
+                # For blanket cut pieces, calculate sq.mtr
+                if data['productType'] == 'blankets' and data.get('length') and data.get('width'):
+                    length_mtr = data['length'] / 1000 if data.get('lengthUnit') == 'mm' else data['length']
+                    width_mtr = data['width'] / 1000 if data.get('widthUnit') == 'mm' else data['width']
+                    sq_mtr_per_piece = length_mtr * width_mtr
+                    total_sq_mtr = data['numberOfPieces'] * sq_mtr_per_piece
+                    
+                    dimensions.update({
+                        'length': data['length'],
+                        'width': data['width'],
+                        'lengthUnit': data.get('lengthUnit', 'mm'),
+                        'widthUnit': data.get('widthUnit', 'mm'),
+                        'sqMtrPerPiece': sq_mtr_per_piece,
+                        'totalSqMtr': total_sq_mtr
+                    })
             
             product_data = {
                 'name': data['productName'],
@@ -142,6 +158,22 @@ def add_stock_detailed():
                         'thicknessUnit': data.get('thicknessUnit', 'mm'),
                         'numberOfPieces': data['numberOfPieces']
                     }
+                    
+                    # For blanket cut pieces, calculate sq.mtr
+                    if data['productType'] == 'blankets' and data.get('length') and data.get('width'):
+                        length_mtr = data['length'] / 1000 if data.get('lengthUnit') == 'mm' else data['length']
+                        width_mtr = data['width'] / 1000 if data.get('widthUnit') == 'mm' else data['width']
+                        sq_mtr_per_piece = length_mtr * width_mtr
+                        total_sq_mtr = data['numberOfPieces'] * sq_mtr_per_piece
+                        
+                        dimensions.update({
+                            'length': data['length'],
+                            'width': data['width'],
+                            'lengthUnit': data.get('lengthUnit', 'mm'),
+                            'widthUnit': data.get('widthUnit', 'mm'),
+                            'sqMtrPerPiece': sq_mtr_per_piece,
+                            'totalSqMtr': total_sq_mtr
+                        })
                 Product.update_dimensions(product_id, dimensions)
         
         # Create detailed stock record

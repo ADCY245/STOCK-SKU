@@ -35,7 +35,10 @@ function displayProducts() {
         // Display stock based on type
         let stockDisplay;
         if (isBlanketPieces) {
-            stockDisplay = `${stockLevel.toFixed(0)} pieces`;
+            const pieces = stockLevel.toFixed(0);
+            const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
+            const totalSqMtr = product.dimensions?.totalSqMtr || (pieces * sqMtrPerPiece);
+            stockDisplay = `${pieces} pieces (${totalSqMtr.toFixed(2)} sq.mtr)`;
         } else {
             stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
         }
@@ -162,7 +165,10 @@ function exportToExcel() {
             // Display stock based on type
             let stockDisplay;
             if (isBlanketPieces) {
-                stockDisplay = `${stockLevel.toFixed(0)} pieces`;
+                const pieces = stockLevel.toFixed(0);
+                const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
+                const totalSqMtr = product.dimensions?.totalSqMtr || (pieces * sqMtrPerPiece);
+                stockDisplay = `${pieces} pieces (${totalSqMtr.toFixed(2)} sq.mtr)`;
             } else {
                 stockDisplay = `${stockLevel.toFixed(2)} sq.mtr`;
             }
