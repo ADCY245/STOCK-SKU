@@ -1,38 +1,120 @@
+// Global variables
+let allProducts = [];
+let filteredProducts = [];
+
 // Load products on page load
 document.addEventListener('DOMContentLoaded', loadProducts);
-
-// Handle form submission
-document.getElementById('product-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('name').value;
-    const category = document.getElementById('category').value;
-
-    try {
-        await api.addProduct({ name, category });
-        document.getElementById('product-form').reset();
-        loadProducts();
-    } catch (error) {
-        alert('Error adding product: ' + error.message);
-    }
-});
 
 // Load and display products
 async function loadProducts() {
     try {
-        const products = await api.getProducts();
-        const productsList = document.getElementById('products-list');
-        productsList.innerHTML = '';
-
-        products.forEach(product => {
-            const productItem = document.createElement('div');
-            productItem.className = 'product-item';
-            productItem.innerHTML = `
-                <span>${product.name} (${product.category})</span>
-                <span>Stock: ${product.stock || 0}</span>
-            `;
-            productsList.appendChild(productItem);
-        });
+        allProducts = await api.getProducts();
+        filteredProducts = [...allProducts];
+        displayProducts();
     } catch (error) {
         console.error('Error loading products:', error);
     }
+}
+
+// Display products in table
+function displayProducts() {
+    const tbody = document.getElementById('products-tbody');
+    tbody.innerHTML = '';
+
+    filteredProducts.forEach(product => {
+        const row = document.createElement('tr');
+        const stockLevel = product.stock || 0;
+        const status = getStockStatus(stockLevel);
+        const statusClass = getStatusClass(status);
+        const lastUpdated = product.lastUpdated ? 
+            new Date(product.lastUpdated).toLocaleDateString() : 'Never';
+
+        row.innerHTML = `
+            <td>${product.name}</td>
+            <td>${product.category}</td>
+            <td>${stockLevel.toFixed(2)} sq.mtr</td>
+            <td>${lastUpdated}</td>
+            <td><span class="status ${statusClass}">${status}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Get stock status text
+function getStockStatus(stock) {
+    if (stock === 0) return 'Out of Stock';
+    if (stock < 10) return 'Low Stock';
+    if (stock < 50) return 'Medium Stock';
+    return 'In Stock';
+}
+
+// Get status CSS class
+function getStatusClass(status) {
+    switch(status) {
+        case 'Out of Stock': return 'out-of-stock';
+        case 'Low Stock': return 'low-stock';
+        case 'Medium Stock': return 'medium-stock';
+        case 'In Stock': return 'in-stock';
+        default: return '';
+    }
+}
+
+// Filter products by category
+function filterProducts() {
+    const categoryFilter = document.getElementById('category-filter').value;
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    
+    filteredProducts = allProducts.filter(product => {
+        const matchesCategory = !categoryFilter || product.category === categoryFilter;
+        const matchesSearch = !searchTerm || 
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.category.toLowerCase().includes(searchTerm);
+        return matchesCategory && matchesSearch;
+    });
+    
+    sortProducts();
+}
+
+// Search products
+function searchProducts() {
+    filterProducts();
+}
+
+// Sort products
+function sortProducts() {
+    const sortBy = document.getElementById('sort-by').value;
+    const sortOrder = document.getElementById('sort-order').value;
+    
+    filteredProducts.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(sortBy) {
+            case 'name':
+                aVal = a.name.toLowerCase();
+                bVal = b.name.toLowerCase();
+                break;
+            case 'category':
+                aVal = a.category.toLowerCase();
+                bVal = b.category.toLowerCase();
+                break;
+            case 'stock':
+                aVal = a.stock || 0;
+                bVal = b.stock || 0;
+                break;
+            case 'lastUpdated':
+                aVal = a.lastUpdated ? new Date(a.lastUpdated) : new Date(0);
+                bVal = b.lastUpdated ? new Date(b.lastUpdated) : new Date(0);
+                break;
+            default:
+                return 0;
+        }
+        
+        if (sortOrder === 'asc') {
+            return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        } else {
+            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+        }
+    });
+    
+    displayProducts();
 }

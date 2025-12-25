@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from models.product import Product
 from models.stock_transaction import StockTransaction
+from datetime import datetime
+import pandas as pd
+import io
 
 stock_bp = Blueprint('stock', __name__)
 
@@ -57,3 +60,118 @@ def issue_stock():
     transaction.save()
 
     return jsonify({'message': 'Stock issued successfully'}), 200
+
+@stock_bp.route('/stock/in/detailed', methods=['POST'])
+def add_stock_detailed():
+    data = request.get_json()
+    
+    required_fields = ['productType', 'productId', 'length', 'width', 'thickness', 'rollNumber', 'importDate', 'sqMtr']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'{field} is required'}), 400
+
+    try:
+        # Create detailed stock record
+        stock_data = {
+            'productType': data['productType'],
+            'productId': data['productId'],
+            'length': data['length'],
+            'width': data['width'],
+            'thickness': data['thickness'],
+            'rollNumber': data['rollNumber'],
+            'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d'),
+            'sqMtr': data['sqMtr'],
+            'createdAt': datetime.utcnow()
+        }
+        
+        # Insert into detailed stock collection
+        from db.database import db
+        result = db.detailed_stock.insert_one(stock_data)
+        
+        # Also update the main product stock
+        product = Product.get_by_id(data['productId'])
+        if product:
+            new_stock = product['stock'] + data['sqMtr']
+            Product.update_stock(data['productId'], new_stock)
+            
+            # Record transaction
+            transaction = StockTransaction(data['productId'], data['sqMtr'], 'in')
+            transaction.save()
+        
+        return jsonify({'message': 'Stock added successfully', 'id': str(result.inserted_id)}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@stock_bp.route('/stock/upload-excel', methods=['POST'])
+def upload_excel():
+    try:
+        if 'excel-file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['excel-file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': 'Invalid file format. Please upload Excel file'}), 400
+        
+        # Read Excel file
+        df = pd.read_excel(file)
+        
+        # Expected columns: productType, productName, length, width, thickness, rollNumber, importDate
+        required_columns = ['productType', 'productName', 'length', 'width', 'thickness', 'rollNumber', 'importDate']
+        
+        for col in required_columns:
+            if col not in df.columns:
+                return jsonify({'error': f'Missing required column: {col}'}), 400
+        
+        # Process each row
+        from db.database import db
+        inserted_count = 0
+        
+        for index, row in df.iterrows():
+            try:
+                # Calculate sqMtr
+                length_mtr = row['length'] / 1000 if row['length'] > 100 else row['length']
+                width_mtr = row['width'] / 1000 if row['width'] > 100 else row['width']
+                sq_mtr = round(length_mtr * width_mtr, 2)
+                
+                # Find product by name and type
+                product = db.products.find_one({
+                    'name': row['productName'],
+                    'category': row['productType']
+                })
+                
+                if product:
+                    stock_data = {
+                        'productType': row['productType'],
+                        'productId': str(product['_id']),
+                        'length': row['length'],
+                        'width': row['width'],
+                        'thickness': row['thickness'],
+                        'rollNumber': str(row['rollNumber']),
+                        'importDate': pd.to_datetime(row['importDate']).to_pydatetime(),
+                        'sqMtr': sq_mtr,
+                        'createdAt': datetime.utcnow()
+                    }
+                    
+                    db.detailed_stock.insert_one(stock_data)
+                    
+                    # Update main product stock
+                    new_stock = product.get('stock', 0) + sq_mtr
+                    db.products.update_one(
+                        {'_id': product['_id']},
+                        {'$set': {'stock': new_stock, 'lastUpdated': datetime.utcnow()}}
+                    )
+                    
+                    inserted_count += 1
+                    
+            except Exception as e:
+                print(f"Error processing row {index}: {e}")
+                continue
+        
+        return jsonify({'message': f'Successfully processed {inserted_count} records', 'count': inserted_count}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

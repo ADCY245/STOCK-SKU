@@ -37,6 +37,10 @@ const api = {
         method: 'POST',
         body: JSON.stringify(transaction),
     }),
+    addStockDetailed: (transaction) => apiCall('/stock/in/detailed', {
+        method: 'POST',
+        body: JSON.stringify(transaction),
+    }),
     issueStock: (transaction) => apiCall('/stock/out', {
         method: 'POST',
         body: JSON.stringify(transaction),
@@ -45,4 +49,15 @@ const api = {
 
     // Reports
     getReport: () => apiCall('/reports'),
+
+    // SKU
+    getCompanies: () => apiCall('/sku/companies'),
+    generateSKU: (data) => apiCall('/sku/generate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    checkDuplicateProduct: (productName) => apiCall('/sku/check-duplicate', {
+        method: 'POST',
+        body: JSON.stringify({ productName }),
+    }),
 };

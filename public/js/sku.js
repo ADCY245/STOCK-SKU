@@ -1,32 +1,37 @@
-const letterToNumber = (letter) => {
-    return letter.charCodeAt(0) - 64;
-};
+// Load companies on page load
+document.addEventListener('DOMContentLoaded', loadCompanies);
 
-const computeNumeric = (shortform) => {
-    if (shortform.length !== 2) return '';
-    const upper = shortform.toUpperCase();
-    const num1 = letterToNumber(upper[0]);
-    const num2 = letterToNumber(upper[1]);
-    return num1.toString() + num2.toString();
-};
-
-const generateShortform = (type) => {
-    const nameInput = document.getElementById(type === 'company' ? 'new-company' : 'brand-name');
-    const shortformInput = document.getElementById(type === 'company' ? 'company-shortform' : 'brand-shortform');
-    const name = nameInput.value.trim();
-    if (name && shortformInput.style.display !== 'none') {
-        const shortform = name.substring(0, 2).toUpperCase();
-        shortformInput.value = shortform;
-        computeNumericForType(type);
+// Load companies from database
+async function loadCompanies() {
+    try {
+        const companies = await api.getCompanies();
+        const companySelect = document.getElementById('company-select');
+        
+        // Clear existing options except "Add New Company"
+        const addNewOption = companySelect.querySelector('option[value="new"]');
+        companySelect.innerHTML = '';
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Select Company';
+        companySelect.appendChild(defaultOption);
+        
+        // Add companies from database
+        companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company.code;
+            option.textContent = `${company.name} (${company.short_form})`;
+            companySelect.appendChild(option);
+        });
+        
+        // Add "Add New Company" option back
+        companySelect.appendChild(addNewOption);
+        
+    } catch (error) {
+        console.error('Error loading companies:', error);
     }
-};
-
-const computeNumericForType = (type) => {
-    const shortformInput = document.getElementById(type === 'company' ? 'company-shortform' : 'brand-shortform');
-    const numericEl = document.getElementById(type === 'company' ? 'company-numeric' : 'brand-numeric');
-    const numeric = computeNumeric(shortformInput.value);
-    numericEl.textContent = `Numeric Code: ${numeric}`;
-};
+}
 
 function handleCompanySelect() {
     const select = document.getElementById('company-select');
@@ -43,45 +48,16 @@ function handleCompanySelect() {
         newCompanyInput.value = '';
         shortformInput.value = '';
         numericEl.textContent = '';
+        shortformInput.disabled = false;
     } else if (select.value) {
-        // Predefined company
-        const predefined = {
-            'co': { shortform: 'CO', numeric: '315' },
-            'hz': { shortform: 'HZ', numeric: '826' },
-            'ps': { shortform: 'PS', numeric: '1619' },
-            'pa': { shortform: 'PA', numeric: '161' },
-            'mz': { shortform: 'MZ', numeric: '1326' },
-            'mt': { shortform: 'MT', numeric: '1320' },
-            'im': { shortform: 'IM', numeric: '913' },
-            'cg': { shortform: 'CG', numeric: '37' },
-            'oh': { shortform: 'OH', numeric: '158' },
-            'sg': { shortform: 'SG', numeric: '197' },
-            'st': { shortform: 'ST', numeric: '1920' },
-            'dg': { shortform: 'DG', numeric: '47' },
-            'or': { shortform: 'OR', numeric: '1518' },
-            'tb': { shortform: 'TB', numeric: '202' },
-            'sp': { shortform: 'SP', numeric: '1916' },
-            'jy': { shortform: 'JY', numeric: '1025' },
-            'sz': { shortform: 'SZ', numeric: '1926' },
-            'og': { shortform: 'OG', numeric: '157' },
-            'te': { shortform: 'TE', numeric: '205' },
-            'an': { shortform: 'AN', numeric: '114' },
-            'as': { shortform: 'AS', numeric: '119' },
-            'tf': { shortform: 'TF', numeric: '206' },
-            'mg': { shortform: 'MG', numeric: '137' },
-            'se': { shortform: 'SE', numeric: '195' },
-            'ss': { shortform: 'SS', numeric: '1919' },
-            'vp': { shortform: 'VP', numeric: '2216' }
-        };
-        const data = predefined[select.value];
-        shortformInput.value = data.shortform;
-        numericEl.textContent = `Numeric Code: ${data.numeric}`;
-        // Hide new inputs
+        // Hide new company inputs
         newCompanyInput.style.display = 'none';
         shortformLabel.style.display = 'none';
         shortformInput.style.display = 'none';
-        numericEl.style.display = 'block';
-        shortformInput.disabled = true; // Unchangeable
+        shortformInput.disabled = true;
+        
+        // Show company info from database
+        showCompanyInfo(select.value);
     } else {
         // No selection
         newCompanyInput.style.display = 'none';
@@ -90,8 +66,32 @@ function handleCompanySelect() {
         numericEl.style.display = 'none';
         shortformInput.disabled = false;
     }
-    computeNumericForType('company');
 }
+
+async function showCompanyInfo(companyCode) {
+    try {
+        const companies = await api.getCompanies();
+        const company = companies.find(c => c.code === companyCode);
+        
+        if (company) {
+            const numericEl = document.getElementById('company-numeric');
+            numericEl.style.display = 'block';
+            numericEl.textContent = `Company: ${company.name} (${company.short_form})`;
+        }
+    } catch (error) {
+        console.error('Error showing company info:', error);
+    }
+}
+
+const generateShortform = (type) => {
+    const nameInput = document.getElementById(type === 'company' ? 'new-company' : 'brand-name');
+    const shortformInput = document.getElementById(type === 'company' ? 'company-shortform' : 'brand-shortform');
+    const name = nameInput.value.trim();
+    if (name && shortformInput.style.display !== 'none') {
+        const shortform = name.substring(0, 2).toUpperCase();
+        shortformInput.value = shortform;
+    }
+};
 
 const checkDimensionsAndToggleBarring = () => {
     const thickness = document.getElementById('thickness').value;
@@ -104,7 +104,6 @@ const checkDimensionsAndToggleBarring = () => {
     } else {
         barringSelect.disabled = true;
         barringSelect.value = '';
-        // Hide bar number fields if barring is cleared
         document.getElementById('bar-number-label').style.display = 'none';
         document.getElementById('bar-number').style.display = 'none';
     }
@@ -127,46 +126,121 @@ function handleBarring() {
     }
 }
 
-function generateSKU() {
-    const companyNumeric = document.getElementById('company-numeric').textContent.replace('Numeric Code: ', '');
-    const brandNumeric = document.getElementById('brand-numeric').textContent.replace('Numeric Code: ', '');
-    const importedCode = document.getElementById('imported-code').value.trim();
+// Generate SKU and create product
+async function generateSKU() {
+    const companySelect = document.getElementById('company-select');
+    const productName = document.getElementById('product-name').value.trim();
+    const productType = document.getElementById('product-type').value;
     const thickness = document.getElementById('thickness').value.trim();
     const length = document.getElementById('length').value.trim();
     const width = document.getElementById('width').value.trim();
     const barring = document.getElementById('barring').value;
     const barNumber = document.getElementById('bar-number').value.trim();
 
-    if (!companyNumeric || !brandNumeric || !importedCode) {
+    // Validation
+    if (!companySelect.value || !productName || !productType) {
         alert('Please fill all required fields.');
         return;
     }
 
-    if (barring === 'yes' && !barNumber) {
-        alert('Bar number is required when barring is Yes.');
-        return;
+    if (companySelect.value === 'new') {
+        const newCompanyName = document.getElementById('new-company').value.trim();
+        const companyShortform = document.getElementById('company-shortform').value.trim();
+        
+        if (!newCompanyName || !companyShortform) {
+            alert('Please fill in the new company details.');
+            return;
+        }
     }
 
-    let dimensions = '';
-    if (thickness && length && width) {
-        dimensions = `-${thickness}-${length}-${width}`;
-    }
+    // Build specifications object
+    const specifications = {
+        thickness: thickness || null,
+        length: length || null,
+        width: width || null,
+        barring: barring || null,
+        barNumber: barring === 'yes' ? barNumber : null
+    };
 
-    let sku = `${companyNumeric}.${brandNumeric}.${importedCode}${dimensions}`;
-    if (barring === 'yes') {
-        sku += `.${barNumber}`;
-    } else if (barring === 'no' || !barring) {
-        // No bar added
-    }
+    try {
+        // Check for duplicate product first
+        const duplicateCheck = await api.checkDuplicateProduct(productName);
+        
+        if (duplicateCheck.exists) {
+            document.getElementById('sku-result').innerHTML = 
+                `Product already exists!<br>SKU: ${duplicateCheck.sku}<br>
+                <button onclick="viewProduct('${duplicateCheck.productId}')">View Product</button>`;
+            return;
+        }
 
-    document.getElementById('sku-result').textContent = `Generated SKU: ${sku}`;
+        // Generate SKU and create product
+        const result = await api.generateSKU({
+            company: companySelect.value === 'new' ? 
+                document.getElementById('new-company').value.trim() : companySelect.value,
+            productName: productName,
+            productType: productType,
+            specifications: specifications
+        });
+
+        document.getElementById('sku-result').innerHTML = 
+            `Product created successfully!<br>SKU: ${result.sku}<br>
+            <button onclick="viewProduct('${result.productId}')">View Product</button>`;
+        
+        // Reset form
+        document.getElementById('sku-form').reset();
+        handleCompanySelect();
+        
+    } catch (error) {
+        alert('Error creating product: ' + error.message);
+    }
+}
+
+function viewProduct(productId) {
+    // Redirect to products page
+    window.location.href = 'products.html';
+}
+
+// Add API functions to api.js
+if (typeof api !== 'undefined') {
+    api.getCompanies = () => apiCall('/sku/companies');
+    api.generateSKU = (data) => apiCall('/sku/generate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+    api.checkDuplicateProduct = (productName) => apiCall('/sku/check-duplicate', {
+        method: 'POST',
+        body: JSON.stringify({ productName }),
+    });
+} else {
+    // Fallback if api.js not loaded
+    const API_BASE = 'http://localhost:5000/api';
+    
+    async function apiCall(endpoint, options = {}) {
+        const url = `${API_BASE}${endpoint}`;
+        const config = {
+            headers: { 'Content-Type': 'application/json' },
+            ...options,
+        };
+        
+        const response = await fetch(url, config);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    }
+    
+    window.api = {
+        getCompanies: () => apiCall('/sku/companies'),
+        generateSKU: (data) => apiCall('/sku/generate', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        checkDuplicateProduct: (productName) => apiCall('/sku/check-duplicate', {
+            method: 'POST',
+            body: JSON.stringify({ productName }),
+        }),
+    };
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // For brand, always show shortform and numeric
-    document.getElementById('brand-shortform').style.display = 'block';
-    document.getElementById('brand-numeric').style.display = 'block';
-    
     // Initially disable barring dropdown
     document.getElementById('barring').disabled = true;
     

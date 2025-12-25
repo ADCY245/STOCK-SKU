@@ -4,6 +4,7 @@ from flask_cors import CORS
 from routes.products import products_bp
 from routes.stock import stock_bp
 from routes.reports import reports_bp
+from routes.sku import sku_bp
 
 app = Flask(__name__, static_folder='../public', static_url_path='')
 CORS(app)  # Enable CORS for frontend
@@ -12,6 +13,7 @@ CORS(app)  # Enable CORS for frontend
 app.register_blueprint(products_bp, url_prefix='/api')
 app.register_blueprint(stock_bp, url_prefix='/api')
 app.register_blueprint(reports_bp, url_prefix='/api')
+app.register_blueprint(sku_bp, url_prefix='/api')
 
 # Serve the main index.html at root route
 @app.route('/')

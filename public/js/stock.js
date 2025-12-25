@@ -3,38 +3,133 @@ async function loadProductsForStock() {
     try {
         const products = await api.getProducts();
         const productSelect = document.getElementById('product');
-        productSelect.innerHTML = '<option value="">Select Product</option>';
-        products.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product._id;
-            option.textContent = `${product.name} (${product.category})`;
-            productSelect.appendChild(option);
-        });
+        if (productSelect) {
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product._id;
+                option.textContent = `${product.name} (${product.category})`;
+                productSelect.appendChild(option);
+            });
+        }
     } catch (error) {
         console.error('Error loading products:', error);
     }
 }
 
-// Handle stock in form
+// Load product names based on product type
+async function loadProductNames() {
+    const productType = document.getElementById('product-type').value;
+    const productNameSelect = document.getElementById('product-name');
+    
+    if (!productType) {
+        productNameSelect.innerHTML = '<option value="">Select Product Type First</option>';
+        return;
+    }
+    
+    try {
+        const products = await api.getProducts();
+        const filteredProducts = products.filter(p => p.category === productType);
+        
+        productNameSelect.innerHTML = '<option value="">Select Product</option>';
+        filteredProducts.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product._id;
+            option.textContent = product.name;
+            productNameSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading product names:', error);
+    }
+}
+
+// Calculate square meters from length and width
+function calculateSqMtr() {
+    const length = parseFloat(document.getElementById('length').value) || 0;
+    const width = parseFloat(document.getElementById('width').value) || 0;
+    
+    // Convert mm to meters if needed (assuming input is in mm)
+    const lengthInMtr = length / 1000;
+    const widthInMtr = width / 1000;
+    
+    const sqMtr = lengthInMtr * widthInMtr;
+    document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
+}
+
+// Handle Excel file upload
+async function uploadExcel() {
+    const fileInput = document.getElementById('excel-file');
+    const statusElement = document.getElementById('upload-status');
+    
+    if (!fileInput.files.length) {
+        statusElement.textContent = 'Please select a file first';
+        statusElement.style.color = 'red';
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('excel-file', file);
+    
+    try {
+        statusElement.textContent = 'Uploading...';
+        statusElement.style.color = 'blue';
+        
+        const response = await fetch('/api/stock/upload-excel', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            statusElement.textContent = `Successfully uploaded ${result.count} records`;
+            statusElement.style.color = 'green';
+            fileInput.value = '';
+        } else {
+            const error = await response.json();
+            statusElement.textContent = 'Upload failed: ' + error.error;
+            statusElement.style.color = 'red';
+        }
+    } catch (error) {
+        statusElement.textContent = 'Upload failed: ' + error.message;
+        statusElement.style.color = 'red';
+    }
+}
+
+// Handle stock in form (new version)
 if (document.getElementById('stock-in-form')) {
     document.getElementById('stock-in-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const productId = document.getElementById('product').value;
-        const quantity = parseInt(document.getElementById('quantity').value);
+        
+        const formData = {
+            productType: document.getElementById('product-type').value,
+            productId: document.getElementById('product-name').value,
+            length: parseFloat(document.getElementById('length').value),
+            width: parseFloat(document.getElementById('width').value),
+            thickness: parseFloat(document.getElementById('thickness').value),
+            rollNumber: document.getElementById('roll-number').value,
+            importDate: document.getElementById('import-date').value,
+            sqMtr: parseFloat(document.getElementById('sq-mtr').value)
+        };
 
         try {
-            await api.addStock({ productId, quantity, type: 'in' });
+            await api.addStockDetailed(formData);
             document.getElementById('stock-in-form').reset();
+            document.getElementById('sq-mtr').value = '';
             alert('Stock added successfully');
         } catch (error) {
             alert('Error adding stock: ' + error.message);
         }
     });
 
-    document.addEventListener('DOMContentLoaded', loadProductsForStock);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProductsForStock();
+        // Set today's date as default
+        document.getElementById('import-date').valueAsDate = new Date();
+    });
 }
 
-// Handle stock out form
+// Handle stock out form (existing version)
 if (document.getElementById('stock-out-form')) {
     document.getElementById('stock-out-form').addEventListener('submit', async (e) => {
         e.preventDefault();
