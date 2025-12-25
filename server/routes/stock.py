@@ -103,7 +103,9 @@ def add_stock_detailed():
                     'lengthUnit': data.get('lengthUnit', 'mm'),
                     'widthUnit': data.get('widthUnit', 'mm'),
                     'thickness': data['thickness'],
-                    'thicknessUnit': data.get('thicknessUnit', 'mm')
+                    'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                    'rollNumber': data.get('rollNumber'),
+                    'stockType': 'roll'
                 }
             elif data['stockType'] == 'pieces':
                 dimensions = {
@@ -140,6 +142,12 @@ def add_stock_detailed():
             product_id = str(product_result.inserted_id)
         else:
             product_id = str(existing_product['_id'])
+            # Always update roll number if provided
+            if data.get('rollNumber'):
+                current_dims = existing_product.get('dimensions', {})
+                current_dims['rollNumber'] = data.get('rollNumber')
+                Product.update_dimensions(product_id, current_dims)
+            
             # Update dimensions if they exist and product doesn't have them
             if not existing_product.get('dimensions') and (data['length'] or data['width'] or data['thickness']):
                 dimensions = {}
@@ -150,7 +158,9 @@ def add_stock_detailed():
                         'lengthUnit': data.get('lengthUnit', 'mm'),
                         'widthUnit': data.get('widthUnit', 'mm'),
                         'thickness': data['thickness'],
-                        'thicknessUnit': data.get('thicknessUnit', 'mm')
+                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                        'rollNumber': data.get('rollNumber'),
+                        'stockType': 'roll'
                     }
                 elif data['stockType'] == 'pieces':
                     dimensions = {
