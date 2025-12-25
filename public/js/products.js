@@ -37,8 +37,7 @@ function displayProducts() {
         if (isBlanketPieces) {
             stockQuantity = stockLevel.toFixed(0); // Number of pieces
             const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-            const totalSqMtr = product.dimensions?.totalSqMtr || (stockLevel * sqMtrPerPiece);
-            stockSize = `${totalSqMtr.toFixed(2)} sq.mtr`;
+            stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
         } else if (product.dimensions?.stockType === 'roll') {
             // For rolls, quantity is length in meters, size is sq.mtr
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
@@ -181,8 +180,7 @@ function exportToExcel() {
             if (isBlanketPieces) {
                 stockQuantity = stockLevel.toFixed(0); // Number of pieces
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-                const totalSqMtr = product.dimensions?.totalSqMtr || (stockLevel * sqMtrPerPiece);
-                stockSize = `${totalSqMtr.toFixed(2)} sq.mtr`;
+                stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
             } else if (product.dimensions?.stockType === 'roll') {
                 // For rolls, quantity is length in meters, size is sq.mtr
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
