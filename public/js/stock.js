@@ -31,6 +31,7 @@ function updateRollNumberRequirement() {
     const rollNumberInput = document.getElementById('roll-number');
     
     // Roll number is required only for blankets with roll stock type
+    // Hide for underpacking and other non-blanket products
     if (productType === 'blankets' && stockType === 'roll') {
         rollNumberInput.required = true;
         rollNumberRow.style.display = 'flex';
@@ -39,8 +40,13 @@ function updateRollNumberRequirement() {
         rollNumberInput.required = false;
         rollNumberInput.value = '';
         rollNumberRow.style.display = 'none';
-    } else if (productType && productType !== 'blankets') {
-        // For non-blanket products, make roll number optional
+    } else if (productType === 'underpacking') {
+        // For underpacking, always hide roll number
+        rollNumberInput.required = false;
+        rollNumberInput.value = '';
+        rollNumberRow.style.display = 'none';
+    } else if (productType && productType !== 'blankets' && productType !== 'underpacking') {
+        // For other non-blanket products, make roll number optional
         rollNumberInput.required = false;
         rollNumberRow.style.display = 'flex';
     } else {

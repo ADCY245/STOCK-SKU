@@ -59,11 +59,9 @@ function displayProducts() {
         // Get roll number from dimensions or detailed stock
         let rollNumber = product.dimensions?.rollNumber || 'N/A';
         
-        // Create differentiated product name for display
+        // Create differentiated product name for display (without roll number brackets)
         let displayName = product.name;
-        if (product.dimensions?.stockType === 'roll' && rollNumber !== 'N/A') {
-            displayName += ` (Roll: ${rollNumber})`;
-        } else if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
+        if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
             const length = product.dimensions.lengthUnit === 'mm' ? 
                 (product.dimensions.length / 1000).toFixed(2) + 'm' : 
                 product.dimensions.length + 'm';
@@ -223,11 +221,9 @@ function exportToExcel() {
             // Get roll number from dimensions
             let rollNumber = product.dimensions?.rollNumber || 'N/A';
             
-            // Create differentiated product name for display
+            // Create differentiated product name for display (without roll number brackets)
             let displayName = product.name;
-            if (product.dimensions?.stockType === 'roll' && rollNumber !== 'N/A') {
-                displayName += ` (Roll: ${rollNumber})`;
-            } else if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
+            if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
                 const length = product.dimensions.lengthUnit === 'mm' ? 
                     (product.dimensions.length / 1000).toFixed(2) + 'm' : 
                     product.dimensions.length + 'm';
