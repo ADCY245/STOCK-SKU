@@ -21,6 +21,26 @@ async function loadProductsForStock() {
 function loadProductNames() {
     // Function kept for compatibility but no longer needed since we use text input
     updateRollNumberRequirement();
+    updateFieldOrder();
+}
+
+// Update field order based on product type
+function updateFieldOrder() {
+    const productType = document.getElementById('product-type').value;
+    const widthRow = document.getElementById('width').closest('.form-row');
+    const lengthRow = document.getElementById('length').closest('.form-row');
+    const thicknessRow = document.getElementById('thickness').closest('.form-row');
+    const container = widthRow.parentNode;
+    
+    if (productType === 'underpacking') {
+        // For underpacking: Length, Width, Thickness
+        container.insertBefore(lengthRow, widthRow);
+        container.insertBefore(widthRow, thicknessRow);
+    } else {
+        // For blankets and others: Width, Length, Thickness  
+        container.insertBefore(widthRow, lengthRow);
+        container.insertBefore(lengthRow, thicknessRow);
+    }
 }
 
 // Update roll number requirement based on product type and stock type
@@ -306,6 +326,7 @@ if (document.getElementById('stock-in-form')) {
         
         if (productTypeSelect) {
             productTypeSelect.addEventListener('change', updateRollNumberRequirement);
+            productTypeSelect.addEventListener('change', updateFieldOrder);
         }
         
         if (stockTypeSelect) {
@@ -317,6 +338,7 @@ if (document.getElementById('stock-in-form')) {
         
         // Initial call to set correct visibility
         updateRollNumberRequirement();
+        updateFieldOrder();
     });
     
     // Initialize form with default values
