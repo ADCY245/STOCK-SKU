@@ -51,16 +51,57 @@ function calculateSqMtr() {
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
 }
 
+// Toggle between roll and pieces fields
+function toggleStockType() {
+    const stockType = document.getElementById('stock-type').value;
+    const rollFields = document.getElementById('roll-fields');
+    const piecesFields = document.getElementById('pieces-fields');
+    const lengthInput = document.getElementById('length');
+    const widthInput = document.getElementById('width');
+    const lengthUnit = document.getElementById('length-unit');
+    const widthUnit = document.getElementById('width-unit');
+    
+    if (stockType === 'roll') {
+        rollFields.style.display = 'block';
+        piecesFields.style.display = 'none';
+        // Make dimensions required for roll calculation
+        lengthInput.required = true;
+        widthInput.required = true;
+        lengthUnit.required = true;
+        widthUnit.required = true;
+    } else if (stockType === 'pieces') {
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'block';
+        // Make dimensions optional for pieces
+        lengthInput.required = false;
+        widthInput.required = false;
+        lengthUnit.required = false;
+        widthUnit.required = false;
+        // Clear sq.mtr when switching to pieces
+        document.getElementById('sq-mtr').value = '';
+    } else {
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'none';
+        lengthInput.required = false;
+        widthInput.required = false;
+        lengthUnit.required = false;
+        widthUnit.required = false;
+    }
+}
+
 // Download Excel template
 function downloadTemplate() {
     // Create CSV template with proper headers
     const headers = [
         'productType',
         'productName', 
+        'stockType',
         'length',
         'width',
         'thickness',
         'rollNumber',
+        'numberOfPieces',
+        'sqMtr',
         'importDate',
         'takenDate'
     ];
@@ -69,10 +110,13 @@ function downloadTemplate() {
     const sampleRow = [
         'blankets',                    // Product type: blankets, litho perf, underpacking, rules, matrix, chemicals, film, plate, ink, other
         'Sample Blanket Product',      // Product name (text, can be long)
-        '1000',                        // Length (number)
-        '500',                         // Width (number)
-        '2.5',                         // Thickness (number)
-        'ROLL001',                     // Roll number (text)
+        'roll',                        // Stock type: roll OR pieces
+        '1000',                        // Length (number, required for roll)
+        '500',                         // Width (number, required for roll)
+        '2.5',                         // Thickness (number, required)
+        'ROLL001',                     // Roll number (text, required)
+        '',                            // Number of pieces (number, required for pieces, leave blank for roll)
+        '50.00',                       // Sq.mtr (number, required for roll, leave blank for pieces)
         '2024-12-25',                  // Import date (YYYY-MM-DD format, optional)
         '2024-12-25'                   // Taken date (YYYY-MM-DD format, optional)
     ];
@@ -141,19 +185,23 @@ if (document.getElementById('stock-in-form')) {
     document.getElementById('stock-in-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        const stockType = document.getElementById('stock-type').value;
+        
         const formData = {
             productType: document.getElementById('product-type').value,
             productName: document.getElementById('product-name').value,
-            length: parseFloat(document.getElementById('length').value),
-            width: parseFloat(document.getElementById('width').value),
+            stockType: stockType,
+            length: stockType === 'roll' ? parseFloat(document.getElementById('length').value) : null,
+            width: stockType === 'roll' ? parseFloat(document.getElementById('width').value) : null,
             thickness: parseFloat(document.getElementById('thickness').value),
-            lengthUnit: document.getElementById('length-unit').value,
-            widthUnit: document.getElementById('width-unit').value,
+            lengthUnit: stockType === 'roll' ? document.getElementById('length-unit').value : null,
+            widthUnit: stockType === 'roll' ? document.getElementById('width-unit').value : null,
             thicknessUnit: document.getElementById('thickness-unit').value,
             rollNumber: document.getElementById('roll-number').value,
+            numberOfPieces: stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) : null,
+            sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : null,
             importDate: document.getElementById('import-date').value || null,
-            takenDate: document.getElementById('taken-date').value || null,
-            sqMtr: parseFloat(document.getElementById('sq-mtr').value)
+            takenDate: document.getElementById('taken-date').value || null
         };
 
         try {

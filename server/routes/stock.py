@@ -65,10 +65,18 @@ def issue_stock():
 def add_stock_detailed():
     data = request.get_json()
     
-    required_fields = ['productType', 'productName', 'length', 'width', 'thickness', 'rollNumber', 'sqMtr']
+    required_fields = ['productType', 'productName', 'stockType', 'thickness', 'rollNumber']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
+
+    # Validate stock type specific fields
+    if data['stockType'] == 'roll':
+        if not data.get('length') or not data.get('width') or not data.get('sqMtr'):
+            return jsonify({'error': 'Length, width, and sq.mtr are required for roll stock'}), 400
+    elif data['stockType'] == 'pieces':
+        if not data.get('numberOfPieces'):
+            return jsonify({'error': 'Number of pieces is required for cut pieces stock'}), 400
 
     try:
         # Create or find product
@@ -99,18 +107,36 @@ def add_stock_detailed():
             'productType': data['productType'],
             'productName': data['productName'],
             'productId': product_id,
-            'length': data['length'],
-            'width': data['width'],
+            'stockType': data['stockType'],
             'thickness': data['thickness'],
-            'lengthUnit': data.get('lengthUnit', 'mm'),
-            'widthUnit': data.get('widthUnit', 'mm'),
             'thicknessUnit': data.get('thicknessUnit', 'mm'),
             'rollNumber': data['rollNumber'],
             'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
             'takenDate': datetime.strptime(data['takenDate'], '%Y-%m-%d') if data.get('takenDate') else None,
-            'sqMtr': data['sqMtr'],
             'createdAt': datetime.utcnow()
         }
+        
+        # Add stock type specific fields
+        if data['stockType'] == 'roll':
+            stock_data.update({
+                'length': data['length'],
+                'width': data['width'],
+                'lengthUnit': data.get('lengthUnit', 'mm'),
+                'widthUnit': data.get('widthUnit', 'mm'),
+                'sqMtr': data['sqMtr'],
+                'numberOfPieces': None
+            })
+            stock_quantity = data['sqMtr']
+        elif data['stockType'] == 'pieces':
+            stock_data.update({
+                'length': None,
+                'width': None,
+                'lengthUnit': None,
+                'widthUnit': None,
+                'sqMtr': None,
+                'numberOfPieces': data['numberOfPieces']
+            })
+            stock_quantity = data['numberOfPieces']
         
         # Insert into detailed stock collection
         from db.database import db
@@ -120,11 +146,11 @@ def add_stock_detailed():
         from models.product import Product
         product = Product.get_by_id(product_id)
         if product:
-            new_stock = product['stock'] + data['sqMtr']
+            new_stock = product['stock'] + stock_quantity
             Product.update_stock(product_id, new_stock)
             
             # Record transaction
-            transaction = StockTransaction(product_id, data['sqMtr'], 'in')
+            transaction = StockTransaction(product_id, stock_quantity, 'in')
             transaction.save()
         
         return jsonify({'message': 'Stock added successfully', 'id': str(result.inserted_id)}), 200
