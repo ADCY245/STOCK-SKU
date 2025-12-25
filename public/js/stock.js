@@ -107,6 +107,7 @@ if (document.getElementById('stock-in-form')) {
             thicknessUnit: document.getElementById('thickness-unit').value,
             rollNumber: document.getElementById('roll-number').value,
             importDate: document.getElementById('import-date').value || null,
+            takenDate: document.getElementById('taken-date').value || null,
             sqMtr: parseFloat(document.getElementById('sq-mtr').value)
         };
 

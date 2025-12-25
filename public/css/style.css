@@ -246,6 +246,22 @@ input[readonly] {
     min-width: 200px;
 }
 
+.export-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
+
+.export-button:hover {
+    background-color: #218838;
+}
+
 /* Products Table */
 .products-table-container {
     background-color: #fff;

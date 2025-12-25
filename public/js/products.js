@@ -118,3 +118,46 @@ function sortProducts() {
     
     displayProducts();
 }
+
+// Export current filtered products to Excel
+function exportToExcel() {
+    if (filteredProducts.length === 0) {
+        alert('No products to export');
+        return;
+    }
+
+    // Create CSV content
+    const headers = ['Product Name', 'Category', 'Current Stock (sq.mtr)', 'Last Updated', 'Status'];
+    const csvContent = [
+        headers.join(','),
+        ...filteredProducts.map(product => {
+            const stockLevel = product.stock || 0;
+            const status = getStockStatus(stockLevel);
+            const lastUpdated = product.lastUpdated ? 
+                new Date(product.lastUpdated).toLocaleDateString() : 'Never';
+            
+            return [
+                `"${product.name}"`,
+                `"${product.category}"`,
+                stockLevel.toFixed(2),
+                `"${lastUpdated}"`,
+                `"${status}"`
+            ].join(',');
+        })
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `products_export_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

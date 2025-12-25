@@ -107,6 +107,7 @@ def add_stock_detailed():
             'thicknessUnit': data.get('thicknessUnit', 'mm'),
             'rollNumber': data['rollNumber'],
             'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
+            'takenDate': datetime.strptime(data['takenDate'], '%Y-%m-%d') if data.get('takenDate') else None,
             'sqMtr': data['sqMtr'],
             'createdAt': datetime.utcnow()
         }
@@ -147,8 +148,9 @@ def upload_excel():
         # Read Excel file
         df = pd.read_excel(file)
         
-        # Expected columns: productType, productName, length, width, thickness, rollNumber, importDate
+        # Expected columns: productType, productName, length, width, thickness, rollNumber, importDate, takenDate
         required_columns = ['productType', 'productName', 'length', 'width', 'thickness', 'rollNumber', 'importDate']
+        optional_columns = ['takenDate']
         
         for col in required_columns:
             if col not in df.columns:
@@ -175,11 +177,13 @@ def upload_excel():
                     stock_data = {
                         'productType': row['productType'],
                         'productId': str(product['_id']),
+                        'productName': row['productName'],
                         'length': row['length'],
                         'width': row['width'],
                         'thickness': row['thickness'],
                         'rollNumber': str(row['rollNumber']),
                         'importDate': pd.to_datetime(row['importDate']).to_pydatetime(),
+                        'takenDate': pd.to_datetime(row['takenDate']).to_pydatetime() if pd.notna(row.get('takenDate')) else None,
                         'sqMtr': sq_mtr,
                         'createdAt': datetime.utcnow()
                     }
