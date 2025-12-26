@@ -20,19 +20,8 @@ i<!DOCTYPE html>
     </header>
     <main>
         <h2>Dashboard</h2>
-        <div class="dashboard-cards">
-            <div class="card">
-                <h3>Total Products</h3>
-                <p id="total-products">0</p>
-            </div>
-            <div class="card">
-                <h3>Total Stock</h3>
-                <p id="total-stock">0</p>
-            </div>
-            <div class="card">
-                <h3>Low Stock Items</h3>
-                <p id="low-stock">0</p>
-            </div>
+        <div id="dashboard-content">
+            <div class="loading">Loading dashboard...</div>
         </div>
     </main>
     <script src="js/api.js"></script>
@@ -40,15 +29,203 @@ i<!DOCTYPE html>
         // Load dashboard data
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const stock = await api.getStock();
-                document.getElementById('total-stock').textContent = stock.total || 0;
-                document.getElementById('low-stock').textContent = stock.lowStock || 0;
                 const products = await api.getProducts();
-                document.getElementById('total-products').textContent = products.length;
+                displayDashboardByProductType(products);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                document.getElementById('dashboard-content').innerHTML = 
+                    '<div class="error">Error loading dashboard data</div>';
             }
         });
+
+        function displayDashboardByProductType(products) {
+            const dashboardContent = document.getElementById('dashboard-content');
+            
+            // Group products by category
+            const categories = {
+                'blankets': [],
+                'underpacking': [],
+                'litho perf': [],
+                'rules': [],
+                'matrix': [],
+                'chemicals': [],
+                'other': []
+            };
+            
+            products.forEach(product => {
+                if (categories[product.category]) {
+                    categories[product.category].push(product);
+                } else {
+                    categories.other.push(product);
+                }
+            });
+
+            let dashboardHTML = '<div class="dashboard-sections">';
+            
+            // Generate HTML for each category
+            Object.entries(categories).forEach(([category, categoryProducts]) => {
+                if (categoryProducts.length > 0) {
+                    const totalStock = categoryProducts.reduce((sum, product) => sum + (product.stock || 0), 0);
+                    const lowStockItems = categoryProducts.filter(product => {
+                        const stockLevel = product.stock || 0;
+                        const isBlanketPieces = product.category === 'blankets' && 
+                                              product.dimensions && 
+                                              product.dimensions.numberOfPieces;
+                        return getStockStatus(stockLevel, isBlanketPieces) === 'Low Stock' || 
+                               getStockStatus(stockLevel, isBlanketPieces) === 'Out of Stock';
+                    }).length;
+                    
+                    dashboardHTML += `
+                        <div class="category-section">
+                            <div class="category-header">
+                                <h3>${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                                <div class="category-stats">
+                                    <div class="stat-card">
+                                        <span class="stat-label">Products</span>
+                                        <span class="stat-value">${categoryProducts.length}</span>
+                                    </div>
+                                    <div class="stat-card">
+                                        <span class="stat-label">Total Stock</span>
+                                        <span class="stat-value">${getStockDisplay(totalStock, category)}</span>
+                                    </div>
+                                    <div class="stat-card">
+                                        <span class="stat-label">Low Stock</span>
+                                        <span class="stat-value ${lowStockItems > 0 ? 'warning' : ''}">${lowStockItems}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="category-products">
+                                ${categoryProducts.slice(0, 3).map(product => `
+                                    <div class="product-item">
+                                        <span class="product-name">${product.name}</span>
+                                        <span class="product-stock">${getStockDisplay(product.stock || 0, category)}</span>
+                                    </div>
+                                `).join('')}
+                                ${categoryProducts.length > 3 ? `<div class="more-items">+${categoryProducts.length - 3} more items</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            dashboardHTML += '</div>';
+            
+            // Add CSS styles
+            dashboardHTML += `
+                <style>
+                    .dashboard-sections {
+                        display: grid;
+                        gap: 20px;
+                        grid-template-columns: 1fr;
+                    }
+                    .category-section {
+                        background: white;
+                        border-radius: 8px;
+                        padding: 20px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .category-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 15px;
+                        border-bottom: 2px solid #007bff;
+                        padding-bottom: 10px;
+                    }
+                    .category-header h3 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .category-stats {
+                        display: flex;
+                        gap: 15px;
+                    }
+                    .stat-card {
+                        text-align: center;
+                        min-width: 80px;
+                    }
+                    .stat-label {
+                        display: block;
+                        font-size: 12px;
+                        color: #666;
+                        margin-bottom: 5px;
+                    }
+                    .stat-value {
+                        display: block;
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    .stat-value.warning {
+                        color: #dc3545;
+                    }
+                    .category-products {
+                        display: grid;
+                        gap: 8px;
+                    }
+                    .product-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 8px 12px;
+                        background: #f8f9fa;
+                        border-radius: 4px;
+                    }
+                    .product-name {
+                        font-weight: 500;
+                        color: #333;
+                    }
+                    .product-stock {
+                        color: #666;
+                        font-size: 14px;
+                    }
+                    .more-items {
+                        text-align: center;
+                        color: #666;
+                        font-style: italic;
+                        padding: 8px;
+                    }
+                    .loading, .error {
+                        text-align: center;
+                        padding: 40px;
+                        color: #666;
+                    }
+                    .error {
+                        color: #dc3545;
+                    }
+                </style>
+            `;
+            
+            dashboardContent.innerHTML = dashboardHTML;
+        }
+
+        function getStockDisplay(stock, category) {
+            if (category === 'chemicals') {
+                return `${stock.toFixed(2)} ltrs`;
+            } else if (category === 'rules') {
+                return `${stock} coils`;
+            } else if (category === 'matrix' || category === 'litho perf') {
+                return `${stock} pkts`;
+            } else if (category === 'blankets' || category === 'underpacking') {
+                return `${stock.toFixed(2)} sq.mtr`;
+            } else {
+                return `${stock} units`;
+            }
+        }
+
+        function getStockStatus(stock, isBlanketPieces = false) {
+            if (isBlanketPieces) {
+                if (stock === 0) return 'Out of Stock';
+                if (stock < 3) return 'Low Stock';
+                if (stock < 10) return 'Medium Stock';
+                return 'In Stock';
+            } else {
+                if (stock === 0) return 'Out of Stock';
+                if (stock < 10) return 'Low Stock';
+                if (stock < 50) return 'Medium Stock';
+                return 'In Stock';
+            }
+        }
     </script>
 </body>
 </html>

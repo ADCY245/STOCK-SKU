@@ -19,7 +19,16 @@ async function loadProducts() {
 // Display products in table
 function displayProducts() {
     const tbody = document.getElementById('products-tbody');
+    const categoryFilter = document.getElementById('category-filter').value;
+    
+    // Clear table
     tbody.innerHTML = '';
+    
+    // If no category selected, show message
+    if (!categoryFilter) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">Please select a category to view products</td></tr>';
+        return;
+    }
 
     filteredProducts.forEach(product => {
         const row = document.createElement('tr');
@@ -229,8 +238,15 @@ function filterProducts() {
     const categoryFilter = document.getElementById('category-filter').value;
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
     
+    // If no category selected, clear filtered products and display message
+    if (!categoryFilter) {
+        filteredProducts = [];
+        displayProducts();
+        return;
+    }
+    
     filteredProducts = allProducts.filter(product => {
-        const matchesCategory = !categoryFilter || product.category === categoryFilter;
+        const matchesCategory = product.category === categoryFilter;
         const matchesSearch = !searchTerm || 
             product.name.toLowerCase().includes(searchTerm) ||
             product.category.toLowerCase().includes(searchTerm);

@@ -123,17 +123,14 @@
         <div class="filters-section">
             <div class="filter-row">
                 <label for="category-filter">Filter by Category:</label>
-                <select id="category-filter" onchange="filterProducts()">
-                    <option value="">All Categories</option>
+                <select id="category-filter" onchange="filterProducts()" required>
+                    <option value="">Select a Category to View Products</option>
                     <option value="blankets">Blankets</option>
-                    <option value="litho perf">Litho Perf</option>
                     <option value="underpacking">Underpacking</option>
+                    <option value="litho perf">Litho Perf</option>
                     <option value="rules">Rules</option>
                     <option value="matrix">Matrix</option>
                     <option value="chemicals">Chemicals</option>
-                    <option value="film">Film</option>
-                    <option value="plate">Plate</option>
-                    <option value="ink">Ink</option>
                     <option value="other">Other</option>
                 </select>
             </div>
