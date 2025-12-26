@@ -37,8 +37,8 @@ function updateFieldOrder() {
         container.insertBefore(widthRow, thicknessRow);
         
         // Update labels to reflect the order
-        widthRow.querySelector('label').textContent = 'Width:';
-        lengthRow.querySelector('label').textContent = 'Length:';
+        widthRow.querySelector('label').textContent = 'Across:';
+        lengthRow.querySelector('label').textContent = 'Around:';
     } else {
         // For blankets and others: Width -> Length -> Thickness
         const container = widthRow.parentNode;
@@ -46,8 +46,8 @@ function updateFieldOrder() {
         container.insertBefore(lengthRow, thicknessRow);
         
         // Update labels to reflect the order
-        widthRow.querySelector('label').textContent = 'Width:';
-        lengthRow.querySelector('label').textContent = 'Length:';
+        widthRow.querySelector('label').textContent = 'Across:';
+        lengthRow.querySelector('label').textContent = 'Around:';
     }
 }
 
