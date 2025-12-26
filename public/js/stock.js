@@ -85,6 +85,11 @@ function toggleProductFields() {
         // Make stock type required
         document.getElementById('stock-type').required = true;
         
+        // Restore required for blanket fields
+        document.getElementById('width').required = true;
+        document.getElementById('length').required = true;
+        document.getElementById('thickness').required = true;
+        
         // Show appropriate stock type fields
         toggleStockType();
     } else if (productType === 'litho perf') {
@@ -103,6 +108,11 @@ function toggleProductFields() {
         
         // Clear roll number value
         document.getElementById('roll-number').value = '';
+        
+        // Remove required from blanket fields
+        document.getElementById('width').required = false;
+        document.getElementById('length').required = false;
+        document.getElementById('thickness').required = false;
     } else if (productType === 'chemicals') {
         // Show chemicals fields
         document.getElementById('chemical-fields').style.display = 'block';
@@ -119,6 +129,11 @@ function toggleProductFields() {
         
         // Clear roll number value
         document.getElementById('roll-number').value = '';
+        
+        // Remove required from blanket fields
+        document.getElementById('width').required = false;
+        document.getElementById('length').required = false;
+        document.getElementById('thickness').required = false;
         
         // Initialize stock unit display
         updateStockUnitDisplay();
@@ -138,6 +153,11 @@ function toggleProductFields() {
         
         // Clear roll number value
         document.getElementById('roll-number').value = '';
+        
+        // Remove required from blanket fields
+        document.getElementById('width').required = false;
+        document.getElementById('length').required = false;
+        document.getElementById('thickness').required = false;
     } else if (productType === 'rules') {
         // Show rules fields
         document.getElementById('rules-fields').style.display = 'block';
@@ -154,6 +174,11 @@ function toggleProductFields() {
         
         // Clear roll number value
         document.getElementById('roll-number').value = '';
+        
+        // Remove required from blanket fields
+        document.getElementById('width').required = false;
+        document.getElementById('length').required = false;
+        document.getElementById('thickness').required = false;
     } else {
         // Hide all product fields for 'other' or empty selection
         document.getElementById('blanket-fields').style.display = 'block';
