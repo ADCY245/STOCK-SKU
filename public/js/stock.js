@@ -259,9 +259,10 @@ function updateRollNumberRequirement() {
         rollNumberInput.value = '';
         rollNumberRow.style.display = 'none';
     } else if (productType && productType !== 'blankets' && productType !== 'underpacking') {
-        // For other non-blanket products, make roll number optional
+        // For other non-blanket products (litho perf, chemicals, matrix, rules), hide roll number
         rollNumberInput.required = false;
-        rollNumberRow.style.display = 'flex';
+        rollNumberInput.value = '';
+        rollNumberRow.style.display = 'none';
     } else {
         // No selection yet
         rollNumberInput.required = false;
@@ -586,6 +587,8 @@ if (document.getElementById('stock-in-form')) {
                 takenDate: document.getElementById('taken-date').value || null
             };
         }
+
+        console.log('Form data being sent:', formData);
 
         try {
             const response = await fetch('/api/stock/in/detailed', {
