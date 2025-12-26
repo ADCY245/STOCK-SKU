@@ -73,7 +73,9 @@ function toggleProductFields() {
         ...lithoFieldIds,
         ...chemicalFieldIds,
         ...matrixFieldIds,
-        ...rulesFieldIds
+        ...rulesFieldIds,
+        'stock-type',
+        'roll-number'
     ];
 
     const setRequiredFor = (ids, value) => {
@@ -263,6 +265,12 @@ function updateRollNumberRequirement() {
         rollNumberInput.required = false;
         rollNumberInput.value = '';
         rollNumberRow.style.display = 'none';
+        
+        // Also remove required from stock type since it's hidden
+        const stockTypeInput = document.getElementById('stock-type');
+        if (stockTypeInput) {
+            stockTypeInput.required = false;
+        }
     } else {
         // No selection yet
         rollNumberInput.required = false;
