@@ -100,6 +100,9 @@ function toggleProductFields() {
         // Remove required from stock type
         document.getElementById('stock-type').required = false;
         document.getElementById('stock-type').value = '';
+        
+        // Clear roll number value
+        document.getElementById('roll-number').value = '';
     } else if (productType === 'chemicals') {
         // Show chemicals fields
         document.getElementById('chemical-fields').style.display = 'block';
@@ -113,6 +116,9 @@ function toggleProductFields() {
         // Remove required from stock type
         document.getElementById('stock-type').required = false;
         document.getElementById('stock-type').value = '';
+        
+        // Clear roll number value
+        document.getElementById('roll-number').value = '';
         
         // Initialize stock unit display
         updateStockUnitDisplay();
@@ -129,6 +135,9 @@ function toggleProductFields() {
         // Remove required from stock type
         document.getElementById('stock-type').required = false;
         document.getElementById('stock-type').value = '';
+        
+        // Clear roll number value
+        document.getElementById('roll-number').value = '';
     } else if (productType === 'rules') {
         // Show rules fields
         document.getElementById('rules-fields').style.display = 'block';
@@ -142,6 +151,9 @@ function toggleProductFields() {
         // Remove required from stock type
         document.getElementById('stock-type').required = false;
         document.getElementById('stock-type').value = '';
+        
+        // Clear roll number value
+        document.getElementById('roll-number').value = '';
     } else {
         // Hide all product fields for 'other' or empty selection
         document.getElementById('blanket-fields').style.display = 'block';
