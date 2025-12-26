@@ -64,60 +64,226 @@ def issue_stock():
 @stock_bp.route('/stock/in/detailed', methods=['POST'])
 def add_stock_detailed():
     data = request.get_json()
-    
-    required_fields = ['productType', 'productName', 'stockType', 'thickness']
-    for field in required_fields:
+
+    # Common required fields
+    base_required = ['productType', 'productName', 'stockType']
+    for field in base_required:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
 
-    # Validate roll number requirement
-    if data['productType'] == 'blankets' and data['stockType'] == 'roll':
-        if not data.get('rollNumber'):
-            return jsonify({'error': 'Roll number is required for blanket rolls'}), 400
+    product_type = data['productType']
+    stock_type = data['stockType']
 
-    # Validate stock type specific fields
-    if data['stockType'] == 'roll':
+    # Determine required fields per product type
+    type_specific_required = []
+    if product_type in ['blankets', 'underpacking']:
+        type_specific_required.extend(['thickness'])
+        if stock_type == 'roll':
+            type_specific_required.extend(['length', 'width', 'sqMtr'])
+        elif stock_type == 'pieces':
+            type_specific_required.extend(['numberOfPieces'])
+    elif product_type == 'litho perf':
+        type_specific_required.extend(['lithoPieceType', 'perforationType', 'stock'])
+    elif product_type == 'matrix':
+        type_specific_required.extend(['matrixFormat', 'matrixSizeWidth', 'matrixSizeHeight', 'stock'])
+    elif product_type == 'rules':
+        type_specific_required.extend(['ruleFormat', 'rulePackedAs', 'stock'])
+    elif product_type == 'chemicals':
+        type_specific_required.extend(['productFormat', 'chemicalUnit', 'stock'])
+
+    for field in type_specific_required:
+        if data.get(field) in [None, '', []]:
+            return jsonify({'error': f'{field} is required'}), 400
+
+    # Blanket roll specific check
+    if product_type == 'blankets' and stock_type == 'roll' and not data.get('rollNumber'):
+        return jsonify({'error': 'Roll number is required for blanket rolls'}), 400
+
+    # Stock-type validation
+    if stock_type == 'roll' and product_type in ['blankets', 'underpacking']:
         if not data.get('length') or not data.get('width') or not data.get('sqMtr'):
             return jsonify({'error': 'Length, width, and sq.mtr are required for roll stock'}), 400
-    elif data['stockType'] == 'pieces':
+    elif stock_type == 'pieces' and product_type in ['blankets', 'underpacking']:
         if not data.get('numberOfPieces'):
             return jsonify({'error': 'Number of pieces is required for cut pieces stock'}), 400
 
     try:
-        # Create or find product
         from db.database import db
-        
-        # Check if product already exists with specific criteria
-        if data['stockType'] == 'roll':
-            # For rolls, check by name, category, AND roll number OR length
-            existing_product = db.products.find_one({
-                'name': data['productName'],
-                'category': data['productType'],
-                'dimensions.stockType': 'roll',
-                '$or': [
-                    {'dimensions.rollNumber': data.get('rollNumber')},
-                    {'$and': [
-                        {'dimensions.length': data['length']},
-                        {'dimensions.width': data['width']}
-                    ]}
-                ]
-            })
-        elif data['stockType'] == 'pieces':
-            # For cut pieces, check by name, category, AND stockType pieces
-            existing_product = db.products.find_one({
-                'name': data['productName'],
-                'category': data['productType'],
-                'dimensions.stockType': 'pieces'
-            })
+
+        blanket_types = ['blankets', 'underpacking']
+
+        def sanitize(payload):
+            return {k: v for k, v in payload.items() if v is not None}
+
+        def build_dimensions_payload():
+            if product_type in blanket_types:
+                if stock_type == 'roll':
+                    return sanitize({
+                        'stockType': 'roll',
+                        'length': data.get('length'),
+                        'width': data.get('width'),
+                        'lengthUnit': data.get('lengthUnit', 'mm'),
+                        'widthUnit': data.get('widthUnit', 'mm'),
+                        'thickness': data.get('thickness'),
+                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                        'rollNumber': data.get('rollNumber')
+                    })
+                elif stock_type == 'pieces':
+                    dimensions = {
+                        'stockType': 'pieces',
+                        'thickness': data.get('thickness'),
+                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                        'numberOfPieces': data.get('numberOfPieces')
+                    }
+                    if data.get('length') and data.get('width'):
+                        dimensions.update({
+                            'length': data.get('length'),
+                            'width': data.get('width'),
+                            'lengthUnit': data.get('lengthUnit', 'mm'),
+                            'widthUnit': data.get('widthUnit', 'mm')
+                        })
+                    return sanitize(dimensions)
+            elif product_type == 'litho perf':
+                return sanitize({
+                    'stockType': 'pieces',
+                    'lithoPieceType': data.get('lithoPieceType'),
+                    'perforationType': data.get('perforationType'),
+                    'productTPI': data.get('productTPI')
+                })
+            elif product_type == 'matrix':
+                return sanitize({
+                    'stockType': 'pieces',
+                    'matrixFormat': data.get('matrixFormat'),
+                    'matrixSizeWidth': data.get('matrixSizeWidth'),
+                    'matrixSizeHeight': data.get('matrixSizeHeight'),
+                    'stockUnit': 'pkts'
+                })
+            elif product_type == 'rules':
+                stock_unit = 'coils' if data.get('rulePackedAs') == 'coil' else 'pkts'
+                return sanitize({
+                    'stockType': data.get('rulePackedAs'),
+                    'ruleFormat': data.get('ruleFormat'),
+                    'rulePackedAs': data.get('rulePackedAs'),
+                    'stockUnit': stock_unit
+                })
+            elif product_type == 'chemicals':
+                return sanitize({
+                    'stockType': stock_type,
+                    'productFormat': data.get('productFormat'),
+                    'chemicalUnit': data.get('chemicalUnit')
+                })
+            return sanitize({'stockType': stock_type})
+
+        def build_stock_record(product_id):
+            stock_data = {
+                'productType': product_type,
+                'productName': data['productName'],
+                'productId': product_id,
+                'stockType': stock_type,
+                'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
+                'takenDate': datetime.strptime(data['takenDate'], '%Y-%m-%d') if data.get('takenDate') else None,
+                'createdAt': datetime.utcnow()
+            }
+
+            quantity = 0
+
+            if product_type in blanket_types:
+                stock_data.update(sanitize({
+                    'thickness': data.get('thickness'),
+                    'thicknessUnit': data.get('thicknessUnit', 'mm'),
+                    'rollNumber': data.get('rollNumber')
+                }))
+
+                if stock_type == 'roll':
+                    stock_data.update(sanitize({
+                        'length': data.get('length'),
+                        'width': data.get('width'),
+                        'lengthUnit': data.get('lengthUnit', 'mm'),
+                        'widthUnit': data.get('widthUnit', 'mm'),
+                        'sqMtr': data.get('sqMtr')
+                    }))
+                    quantity = float(data.get('sqMtr', 0))
+                elif stock_type == 'pieces':
+                    stock_data.update(sanitize({
+                        'numberOfPieces': data.get('numberOfPieces'),
+                        'length': data.get('length'),
+                        'width': data.get('width'),
+                        'lengthUnit': data.get('lengthUnit', 'mm'),
+                        'widthUnit': data.get('widthUnit', 'mm')
+                    }))
+                    quantity = int(data.get('numberOfPieces', 0))
+            elif product_type == 'litho perf':
+                stock_data.update(sanitize({
+                    'lithoPieceType': data.get('lithoPieceType'),
+                    'perforationType': data.get('perforationType'),
+                    'productTPI': data.get('productTPI'),
+                    'stock': data.get('stock')
+                }))
+                quantity = float(data.get('stock', 0))
+            elif product_type == 'matrix':
+                stock_data.update(sanitize({
+                    'matrixFormat': data.get('matrixFormat'),
+                    'matrixSizeWidth': data.get('matrixSizeWidth'),
+                    'matrixSizeHeight': data.get('matrixSizeHeight'),
+                    'stock': data.get('stock'),
+                    'stockUnit': 'pkts'
+                }))
+                quantity = float(data.get('stock', 0))
+            elif product_type == 'rules':
+                stock_unit = 'coils' if data.get('rulePackedAs') == 'coil' else 'pkts'
+                stock_data.update(sanitize({
+                    'ruleFormat': data.get('ruleFormat'),
+                    'rulePackedAs': data.get('rulePackedAs'),
+                    'stockUnit': stock_unit,
+                    'stock': data.get('stock')
+                }))
+                quantity = float(data.get('stock', 0))
+            elif product_type == 'chemicals':
+                stock_data.update(sanitize({
+                    'productFormat': data.get('productFormat'),
+                    'chemicalUnit': data.get('chemicalUnit'),
+                    'stock': data.get('stock')
+                }))
+                quantity = float(data.get('stock', 0))
+            else:
+                quantity = float(data.get('stock', 0))
+
+            return stock_data, quantity
+
+        # Identify existing product
+        if product_type in blanket_types:
+            if stock_type == 'roll':
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type,
+                    'dimensions.stockType': 'roll',
+                    '$or': [
+                        {'dimensions.rollNumber': data.get('rollNumber')},
+                        {'$and': [
+                            {'dimensions.length': data.get('length')},
+                            {'dimensions.width': data.get('width')}
+                        ]}
+                    ]
+                })
+            elif stock_type == 'pieces':
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type,
+                    'dimensions.stockType': 'pieces'
+                })
+            else:
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type
+                })
         else:
-            # Fallback to original logic
             existing_product = db.products.find_one({
                 'name': data['productName'],
-                'category': data['productType']
+                'category': product_type
             })
-        
-        # Handle duplicate detection for rolls
-        if existing_product and data['stockType'] == 'roll':
+
+        # Duplicate roll detection only for blanket/underpacking rolls
+        if existing_product and product_type in blanket_types and stock_type == 'roll':
             return jsonify({
                 'error': 'DUPLICATE_ROLL',
                 'message': f'Roll "{data.get("rollNumber", "Unknown")}" for "{data["productName"]}" already exists with same dimensions.',
@@ -129,157 +295,42 @@ def add_stock_detailed():
                     'importDate': existing_product.get('dimensions', {}).get('importDate', 'N/A')
                 },
                 'requiresConfirmation': True
-            }), 409  # 409 Conflict
-        
-        # Handle duplicate detection for pieces (accumulate)
-        elif existing_product and data['stockType'] == 'pieces':
-            # For pieces, we'll accumulate stock, so no duplicate warning needed
-            pass
-        
+            }), 409
+
+        new_dimensions = build_dimensions_payload()
+
         if not existing_product:
-            # Create new product with dimensions
-            dimensions = {}
-            if data['stockType'] == 'roll':
-                dimensions = {
-                    'length': data['length'],
-                    'width': data['width'],
-                    'lengthUnit': data.get('lengthUnit', 'mm'),
-                    'widthUnit': data.get('widthUnit', 'mm'),
-                    'thickness': data['thickness'],
-                    'thicknessUnit': data.get('thicknessUnit', 'mm'),
-                    'rollNumber': data.get('rollNumber'),
-                    'stockType': 'roll'
-                }
-            elif data['stockType'] == 'pieces':
-                dimensions = {
-                    'thickness': data['thickness'],
-                    'thicknessUnit': data.get('thicknessUnit', 'mm'),
-                    'numberOfPieces': data['numberOfPieces']
-                }
-                
-                # For blanket cut pieces, calculate sq.mtr
-                if data['productType'] == 'blankets' and data.get('length') and data.get('width'):
-                    length_mtr = data['length'] / 1000 if data.get('lengthUnit') == 'mm' else data['length']
-                    width_mtr = data['width'] / 1000 if data.get('widthUnit') == 'mm' else data['width']
-                    sq_mtr_per_piece = length_mtr * width_mtr
-                    total_sq_mtr = data['numberOfPieces'] * sq_mtr_per_piece
-                    
-                    dimensions.update({
-                        'length': data['length'],
-                        'width': data['width'],
-                        'lengthUnit': data.get('lengthUnit', 'mm'),
-                        'widthUnit': data.get('widthUnit', 'mm'),
-                        'sqMtrPerPiece': sq_mtr_per_piece,
-                        'totalSqMtr': total_sq_mtr
-                    })
-            
             product_data = {
                 'name': data['productName'],
-                'category': data['productType'],
+                'category': product_type,
                 'stock': 0,
                 'imported': True,
-                'dimensions': dimensions,
+                'dimensions': new_dimensions,
                 'createdAt': datetime.utcnow()
             }
             product_result = db.products.insert_one(product_data)
             product_id = str(product_result.inserted_id)
         else:
             product_id = str(existing_product['_id'])
-            # Always update roll number if provided
-            if data.get('rollNumber'):
-                current_dims = existing_product.get('dimensions', {})
-                current_dims['rollNumber'] = data.get('rollNumber')
-                Product.update_dimensions(product_id, current_dims)
-            
-            # Update dimensions if they exist and product doesn't have them
-            if not existing_product.get('dimensions') and (data['length'] or data['width'] or data['thickness']):
-                dimensions = {}
-                if data['stockType'] == 'roll':
-                    dimensions = {
-                        'length': data['length'],
-                        'width': data['width'],
-                        'lengthUnit': data.get('lengthUnit', 'mm'),
-                        'widthUnit': data.get('widthUnit', 'mm'),
-                        'thickness': data['thickness'],
-                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
-                        'rollNumber': data.get('rollNumber'),
-                        'stockType': 'roll'
-                    }
-                elif data['stockType'] == 'pieces':
-                    dimensions = {
-                        'thickness': data['thickness'],
-                        'thicknessUnit': data.get('thicknessUnit', 'mm'),
-                        'numberOfPieces': data['numberOfPieces']
-                    }
-                    
-                    # For blanket cut pieces, calculate sq.mtr
-                    if data['productType'] == 'blankets' and data.get('length') and data.get('width'):
-                        length_mtr = data['length'] / 1000 if data.get('lengthUnit') == 'mm' else data['length']
-                        width_mtr = data['width'] / 1000 if data.get('widthUnit') == 'mm' else data['width']
-                        sq_mtr_per_piece = length_mtr * width_mtr
-                        total_sq_mtr = data['numberOfPieces'] * sq_mtr_per_piece
-                        
-                        dimensions.update({
-                            'length': data['length'],
-                            'width': data['width'],
-                            'lengthUnit': data.get('lengthUnit', 'mm'),
-                            'widthUnit': data.get('widthUnit', 'mm'),
-                            'sqMtrPerPiece': sq_mtr_per_piece,
-                            'totalSqMtr': total_sq_mtr
-                        })
-                Product.update_dimensions(product_id, dimensions)
-        
-        # Create detailed stock record
-        stock_data = {
-            'productType': data['productType'],
-            'productName': data['productName'],
-            'productId': product_id,
-            'stockType': data['stockType'],
-            'thickness': data['thickness'],
-            'thicknessUnit': data.get('thicknessUnit', 'mm'),
-            'rollNumber': data.get('rollNumber', None),
-            'importDate': datetime.strptime(data['importDate'], '%Y-%m-%d') if data.get('importDate') else None,
-            'takenDate': datetime.strptime(data['takenDate'], '%Y-%m-%d') if data.get('takenDate') else None,
-            'createdAt': datetime.utcnow()
-        }
-        
-        # Add stock type specific fields
-        if data['stockType'] == 'roll':
-            stock_data.update({
-                'length': data['length'],
-                'width': data['width'],
-                'lengthUnit': data.get('lengthUnit', 'mm'),
-                'widthUnit': data.get('widthUnit', 'mm'),
-                'sqMtr': data['sqMtr'],
-                'numberOfPieces': None
-            })
-            stock_quantity = data['sqMtr']
-        elif data['stockType'] == 'pieces':
-            stock_data.update({
-                'length': None,
-                'width': None,
-                'lengthUnit': None,
-                'widthUnit': None,
-                'sqMtr': None,
-                'numberOfPieces': data['numberOfPieces']
-            })
-            stock_quantity = data['numberOfPieces']
-        
+            if new_dimensions:
+                merged_dimensions = existing_product.get('dimensions', {}).copy()
+                merged_dimensions.update(new_dimensions)
+                Product.update_dimensions(product_id, merged_dimensions)
+
+        stock_data, stock_quantity = build_stock_record(product_id)
+
         # Insert into detailed stock collection
-        from db.database import db
         result = db.detailed_stock.insert_one(stock_data)
-        
-        # Also update the main product stock
-        from models.product import Product
+
+        # Update product stock and record transaction
         product = Product.get_by_id(product_id)
         if product:
-            new_stock = product['stock'] + stock_quantity
-            Product.update_stock(product_id, new_stock)
-            
-            # Record transaction
+            new_stock_total = product.get('stock', 0) + stock_quantity
+            Product.update_stock(product_id, new_stock_total)
+
             transaction = StockTransaction(product_id, stock_quantity, 'in')
             transaction.save()
-        
+
         return jsonify({'message': 'Stock added successfully', 'id': str(result.inserted_id)}), 200
         
     except Exception as e:
