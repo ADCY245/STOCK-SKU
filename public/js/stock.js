@@ -23,6 +23,44 @@ function loadProductNames() {
     updateRollNumberRequirement();
 }
 
+// Toggle product fields based on product type
+function toggleProductFields() {
+    const productType = document.getElementById('product-type').value;
+    const blanketFields = document.getElementById('blanket-fields');
+    const lithoPerfFields = document.getElementById('litho-perf-fields');
+    const chemicalFields = document.getElementById('chemical-fields');
+    const stockTypeRow = document.getElementById('stock-type').closest('.form-row');
+    const rollNumberRow = document.getElementById('roll-number-row');
+    
+    // Hide all product-specific fields first
+    blanketFields.style.display = 'none';
+    lithoPerfFields.style.display = 'none';
+    chemicalFields.style.display = 'none';
+    
+    // Show relevant fields and adjust stock type options
+    if (productType === 'litho perf') {
+        lithoPerfFields.style.display = 'block';
+        // Hide stock type for litho perf (always packets)
+        stockTypeRow.style.display = 'none';
+        rollNumberRow.style.display = 'none';
+    } else if (productType === 'chemicals') {
+        chemicalFields.style.display = 'block';
+        // Hide stock type for chemicals (always in ltrs/kg)
+        stockTypeRow.style.display = 'none';
+        rollNumberRow.style.display = 'none';
+    } else if (productType === 'blankets' || productType === 'underpacking') {
+        blanketFields.style.display = 'block';
+        stockTypeRow.style.display = 'flex';
+        updateRollNumberRequirement();
+        updateFieldOrder();
+    } else {
+        // For other product types, show basic fields
+        blanketFields.style.display = 'block';
+        stockTypeRow.style.display = 'flex';
+        rollNumberRow.style.display = 'none';
+    }
+}
+
 // Update field order based on product type
 function updateFieldOrder() {
     const productType = document.getElementById('product-type').value;
@@ -111,6 +149,44 @@ function calculateSqMtr() {
     // Calculate square meters
     const sqMtr = lengthInMtr * widthInMtr;
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
+}
+
+// Calculate chemical containers
+function calculateChemicalContainers() {
+    const format = parseInt(document.getElementById('product-format').value);
+    const unit = document.getElementById('chemical-unit').value;
+    const stockInput = document.getElementById('chemical-stock');
+    
+    if (format && unit && stockInput.value) {
+        const totalStock = parseFloat(stockInput.value);
+        let containers = 0;
+        let containerType = '';
+        
+        if (unit === 'ltr') {
+            if (format === 1) {
+                containers = totalStock / 1;
+                containerType = 'bottles';
+            } else if (format === 5) {
+                containers = totalStock / 5;
+                containerType = 'cans';
+            } else if (format === 25) {
+                containers = totalStock / 25;
+                containerType = 'cans';
+            } else if (format === 200) {
+                containers = totalStock / 200;
+                containerType = 'drums';
+            }
+        } else if (unit === 'kg') {
+            containers = totalStock / format;
+            containerType = 'packets';
+        }
+        
+        // Update display
+        const resultDiv = document.getElementById('container-result');
+        if (resultDiv) {
+            resultDiv.innerHTML = `<strong>Available: ${containers.toFixed(1)} ${containerType}</strong>`;
+        }
+    }
 }
 
 // Calculate square meters for pieces
@@ -275,25 +351,62 @@ if (document.getElementById('stock-in-form')) {
     document.getElementById('stock-in-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const stockType = document.getElementById('stock-type').value;
-        
-        const formData = {
-            productType: document.getElementById('product-type').value,
+        const productType = document.getElementById('product-type').value;
+        let formData = {
+            productType: productType,
             productName: document.getElementById('product-name').value,
-            stockType: stockType,
-            length: stockType === 'roll' ? parseFloat(document.getElementById('length').value) : null,
-            width: stockType === 'roll' ? parseFloat(document.getElementById('width').value) : null,
-            thickness: parseFloat(document.getElementById('thickness').value),
-            lengthUnit: stockType === 'roll' ? document.getElementById('length-unit').value : null,
-            widthUnit: stockType === 'roll' ? document.getElementById('width-unit').value : null,
-            thicknessUnit: document.getElementById('thickness-unit').value,
-            rollNumber: document.getElementById('roll-number').value,
-            numberOfPieces: stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) : null,
-            sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : 
-                   stockType === 'pieces' ? parseFloat(document.getElementById('pieces-sq-mtr').value) : null,
-            importDate: document.getElementById('import-date').value || null,
-            takenDate: document.getElementById('taken-date').value || null
         };
+        
+        // Handle different product types
+        if (productType === 'litho perf') {
+            // Litho perf specific data
+            formData = {
+                ...formData,
+                stockType: 'pieces', // Always packets
+                productTPI: document.getElementById('product-tpi').value || null,
+                lithoProductType: document.getElementById('litho-product-type').value,
+                perforationType: document.getElementById('perforation-type').value,
+                numberOfPieces: 1, // Default for packets
+                sqMtr: null,
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else if (productType === 'chemicals') {
+            // Chemicals specific data
+            const format = document.getElementById('product-format').value;
+            const unit = document.getElementById('chemical-unit').value;
+            const stock = parseFloat(document.getElementById('chemical-stock').value);
+            
+            formData = {
+                ...formData,
+                stockType: 'chemical',
+                productFormat: format,
+                chemicalUnit: unit,
+                stock: stock,
+                sqMtr: null,
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else {
+            // Blankets/Underpacking/Other products
+            const stockType = document.getElementById('stock-type').value;
+            formData = {
+                ...formData,
+                stockType: stockType,
+                length: stockType === 'roll' ? parseFloat(document.getElementById('length').value) : null,
+                width: stockType === 'roll' ? parseFloat(document.getElementById('width').value) : null,
+                thickness: parseFloat(document.getElementById('thickness').value),
+                lengthUnit: stockType === 'roll' ? document.getElementById('length-unit').value : null,
+                widthUnit: stockType === 'roll' ? document.getElementById('width-unit').value : null,
+                thicknessUnit: document.getElementById('thickness-unit').value,
+                rollNumber: document.getElementById('roll-number').value,
+                numberOfPieces: stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) : null,
+                sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : 
+                       stockType === 'pieces' ? parseFloat(document.getElementById('pieces-sq-mtr').value) : null,
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        }
 
         try {
             const response = await fetch('/api/stock/in/detailed', {
@@ -336,6 +449,7 @@ if (document.getElementById('stock-in-form')) {
             productTypeSelect.addEventListener('change', () => {
                 updateRollNumberRequirement();
                 updateFieldOrder();
+                toggleProductFields();
             });
         }
         
@@ -349,7 +463,32 @@ if (document.getElementById('stock-in-form')) {
         // Initial call to set correct visibility
         updateRollNumberRequirement();
         updateFieldOrder();
+        toggleProductFields();
+        
+        // Add event listeners for chemical fields
+        const chemicalUnit = document.getElementById('chemical-unit');
+        const productFormat = document.getElementById('product-format');
+        
+        if (chemicalUnit) {
+            chemicalUnit.addEventListener('change', () => {
+                updateStockUnitDisplay();
+                calculateChemicalContainers();
+            });
+        }
+        
+        if (productFormat) {
+            productFormat.addEventListener('change', calculateChemicalContainers);
+        }
     });
+    
+    // Update stock unit display for chemicals
+    function updateStockUnitDisplay() {
+        const unit = document.getElementById('chemical-unit').value;
+        const display = document.getElementById('stock-unit-display');
+        if (display) {
+            display.textContent = unit ? `[${unit}]` : '';
+        }
+    }
     
     // Initialize form with default values
     function initializeFormDefaults() {

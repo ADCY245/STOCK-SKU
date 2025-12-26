@@ -54,33 +54,88 @@
                     <input type="text" id="product-name" placeholder="Enter product name" required>
                 </div>
 
-                <div class="form-row">
-                    <label for="width">Across:</label>
-                    <input type="number" id="width" step="0.01" required onchange="calculateSqMtr()">
-                    <select id="width-unit" onchange="calculateSqMtr()">
-                        <option value="mm">mm</option>
-                        <option value="mtr">mtr</option>
-                    </select>
+                <!-- Blankets/Underpacking Fields -->
+                <div id="blanket-fields" class="product-fields">
+                    <div class="form-row">
+                        <label for="width">Across:</label>
+                        <input type="number" id="width" step="0.01" required onchange="calculateSqMtr()">
+                        <select id="width-unit" onchange="calculateSqMtr()">
+                            <option value="mm">mm</option>
+                            <option value="mtr">mtr</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="length">Around:</label>
+                        <input type="number" id="length" step="0.01" required onchange="calculateSqMtr()">
+                        <select id="length-unit" onchange="calculateSqMtr()">
+                            <option value="mm">mm</option>
+                            <option value="mtr">mtr</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="thickness">Thickness:</label>
+                        <input type="number" id="thickness" step="0.01" required>
+                        <select id="thickness-unit">
+                            <option value="mm">mm</option>
+                            <option value="micron">micron</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-row">
-                    <label for="length">Around:</label>
-                    <input type="number" id="length" step="0.01" required onchange="calculateSqMtr()">
-                    <select id="length-unit" onchange="calculateSqMtr()">
-                        <option value="mm">mm</option>
-                        <option value="mtr">mtr</option>
-                    </select>
+                <!-- Litho Perf Fields -->
+                <div id="litho-perf-fields" class="product-fields" style="display: none;">
+                    <div class="form-row">
+                        <label for="product-tpi">Product TPI:</label>
+                        <input type="number" id="product-tpi" step="0.1" placeholder="Optional">
+                    </div>
+
+                    <div class="form-row">
+                        <label for="litho-product-type">Product Type:</label>
+                        <input type="text" id="litho-product-type" placeholder="e.g., Perf Sheet, Perf Roll" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="perforation-type">Perforation Type:</label>
+                        <input type="text" id="perforation-type" placeholder="e.g., Micro Perf, Standard Perf" required>
+                    </div>
                 </div>
 
-                <div class="form-row">
-                    <label for="thickness">Thickness:</label>
-                    <input type="number" id="thickness" step="0.01" required>
-                    <select id="thickness-unit">
-                        <option value="mm">mm</option>
-                        <option value="micron">micron</option>
-                    </select>
+                <!-- Chemicals Fields -->
+                <div id="chemical-fields" class="product-fields" style="display: none;">
+                    <div class="form-row">
+                        <label for="product-format">Product Format:</label>
+                        <select id="product-format" required>
+                            <option value="">Select Format</option>
+                            <option value="1">1</option>
+                            <option value="5">5</option>
+                            <option value="25">25</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="chemical-unit">Product Type:</label>
+                        <select id="chemical-unit" required>
+                            <option value="">Select Unit</option>
+                            <option value="kg">kg</option>
+                            <option value="ltr">ltr</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="chemical-stock">Product Stock:</label>
+                        <input type="number" id="chemical-stock" step="0.01" required onchange="calculateChemicalContainers()">
+                        <span id="stock-unit-display" style="margin-left: 10px; color: #666;"></span>
+                    </div>
+
+                    <div class="form-row" id="container-result" style="background: #f0f8ff; padding: 10px; border-radius: 5px;">
+                        <strong>Available: 0 containers</strong>
+                    </div>
                 </div>
 
+                <!-- Common Fields -->
                 <div class="form-row">
                     <label for="stock-type">Stock Type:</label>
                     <select id="stock-type" onchange="toggleStockType()" required>
