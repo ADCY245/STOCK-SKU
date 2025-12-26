@@ -94,8 +94,8 @@ function displayProducts() {
             } else {
                 stockQuantity = stockLevel.toFixed(2);
                 stockQuantityUnit = 'units';
-                stockSize = '-';
-                stockSizeUnit = '';
+                stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                stockSizeUnit = 'units';
             }
         }
         
@@ -342,39 +342,47 @@ function exportToExcel() {
                 if (product.category === 'underpacking') {
                     stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
                     stockQuantityUnit = 'mtr';
-                } else {
-                    stockQuantity = lengthInMtr.toFixed(2); // Length in meters for other rolls
+                    stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+                    stockSizeUnit = '';
+                } else if (product.category === 'blankets') {
+                    stockQuantity = lengthInMtr.toFixed(2); // Length in meters for blankets
                     stockQuantityUnit = 'mtr';
+                    stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+                    stockSizeUnit = '';
+                } else {
+                    // Other products with dimensions but no sq.mtr display
+                    stockQuantity = stockLevel.toFixed(2);
+                    stockQuantityUnit = 'units';
+                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'units';
                 }
-                stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
-                stockSizeUnit = '';
             } else {
                 // Default case for other products - determine units based on category
                 if (product.category === 'chemicals') {
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = 'ltrs';
-                    stockSize = '-';
-                    stockSizeUnit = '';
+                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'ltrs';
                 } else if (product.category === 'rules') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = 'coils';
-                    stockSize = '-';
-                    stockSizeUnit = '';
+                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'coils';
                 } else if (product.category === 'matrix') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = 'pkts';
-                    stockSize = '-';
-                    stockSizeUnit = '';
+                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'pkts';
                 } else if (product.category === 'litho perf') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = 'pkts';
-                    stockSize = '-';
-                    stockSizeUnit = '';
+                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'pkts';
                 } else {
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = 'units';
-                    stockSize = '-';
-                    stockSizeUnit = '';
+                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                    stockSizeUnit = 'units';
                 }
             }
             
