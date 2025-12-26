@@ -62,7 +62,29 @@ async function loadProductNames() {
 // Toggle product fields based on product type
 function toggleProductFields() {
     const productType = document.getElementById('product-type').value;
-    
+    const blanketFieldIds = ['width', 'length', 'thickness'];
+    const lithoFieldIds = ['litho-piece-type', 'perforation-type', 'litho-stock'];
+    const chemicalFieldIds = ['product-format', 'chemical-unit', 'chemical-stock'];
+    const matrixFieldIds = ['matrix-format', 'matrix-size-width', 'matrix-size-height', 'matrix-stock'];
+    const rulesFieldIds = ['rule-format', 'rule-packed-as', 'rule-stock'];
+
+    const allFieldIds = [
+        ...blanketFieldIds,
+        ...lithoFieldIds,
+        ...chemicalFieldIds,
+        ...matrixFieldIds,
+        ...rulesFieldIds
+    ];
+
+    const setRequiredFor = (ids, value) => {
+        ids.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.required = value;
+            }
+        });
+    };
+
     // Hide all product-specific fields first
     document.querySelectorAll('.product-fields').forEach(field => {
         field.style.display = 'none';
@@ -73,6 +95,9 @@ function toggleProductFields() {
     const rollNumberRow = document.getElementById('roll-number-row');
     const rollFields = document.getElementById('roll-fields');
     const piecesFields = document.getElementById('pieces-fields');
+    
+    // Reset all required flags
+    setRequiredFor(allFieldIds, false);
     
     if (productType === 'blankets' || productType === 'underpacking') {
         // Show blanket/underpacking fields
@@ -86,9 +111,7 @@ function toggleProductFields() {
         document.getElementById('stock-type').required = true;
         
         // Restore required for blanket fields
-        document.getElementById('width').required = true;
-        document.getElementById('length').required = true;
-        document.getElementById('thickness').required = true;
+        setRequiredFor(blanketFieldIds, true);
         
         // Show appropriate stock type fields
         toggleStockType();
@@ -110,9 +133,7 @@ function toggleProductFields() {
         document.getElementById('roll-number').value = '';
         
         // Remove required from blanket fields
-        document.getElementById('width').required = false;
-        document.getElementById('length').required = false;
-        document.getElementById('thickness').required = false;
+        setRequiredFor(lithoFieldIds, true);
     } else if (productType === 'chemicals') {
         // Show chemicals fields
         document.getElementById('chemical-fields').style.display = 'block';
@@ -131,9 +152,7 @@ function toggleProductFields() {
         document.getElementById('roll-number').value = '';
         
         // Remove required from blanket fields
-        document.getElementById('width').required = false;
-        document.getElementById('length').required = false;
-        document.getElementById('thickness').required = false;
+        setRequiredFor(chemicalFieldIds, true);
         
         // Initialize stock unit display
         updateStockUnitDisplay();
@@ -155,9 +174,7 @@ function toggleProductFields() {
         document.getElementById('roll-number').value = '';
         
         // Remove required from blanket fields
-        document.getElementById('width').required = false;
-        document.getElementById('length').required = false;
-        document.getElementById('thickness').required = false;
+        setRequiredFor(matrixFieldIds, true);
     } else if (productType === 'rules') {
         // Show rules fields
         document.getElementById('rules-fields').style.display = 'block';
@@ -176,9 +193,7 @@ function toggleProductFields() {
         document.getElementById('roll-number').value = '';
         
         // Remove required from blanket fields
-        document.getElementById('width').required = false;
-        document.getElementById('length').required = false;
-        document.getElementById('thickness').required = false;
+        setRequiredFor(rulesFieldIds, true);
     } else {
         // Hide all product fields for 'other' or empty selection
         document.getElementById('blanket-fields').style.display = 'block';
