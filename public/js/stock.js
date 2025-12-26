@@ -601,6 +601,9 @@ if (document.getElementById('stock-in-form')) {
             
             const result = await response.json();
             
+            console.log('Backend response:', result);
+            console.log('Response status:', response.status);
+            
             if (response.ok) {
                 document.getElementById('stock-in-form').reset();
                 document.getElementById('sq-mtr').value = '';
