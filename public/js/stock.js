@@ -566,6 +566,12 @@ if (document.getElementById('stock-in-form')) {
         if (productFormat) {
             productFormat.addEventListener('change', calculateChemicalContainers);
         }
+        
+        // Add event listener for rules packing selection
+        const rulePackedAs = document.getElementById('rule-packed-as');
+        if (rulePackedAs) {
+            rulePackedAs.addEventListener('change', updateRulesStockUnit);
+        }
     });
     
     // Update stock unit display for chemicals
@@ -574,6 +580,15 @@ if (document.getElementById('stock-in-form')) {
         const display = document.getElementById('stock-unit-display');
         if (display) {
             display.textContent = unit ? `[${unit}]` : '';
+        }
+    }
+    
+    // Update rules stock unit display based on packing selection
+    function updateRulesStockUnit() {
+        const packedAs = document.getElementById('rule-packed-as').value;
+        const unitDisplay = document.getElementById('rule-stock-unit');
+        if (unitDisplay) {
+            unitDisplay.textContent = packedAs === 'packets' ? 'pkts' : 'coils';
         }
     }
     
