@@ -29,6 +29,8 @@ function toggleProductFields() {
     const blanketFields = document.getElementById('blanket-fields');
     const lithoPerfFields = document.getElementById('litho-perf-fields');
     const chemicalFields = document.getElementById('chemical-fields');
+    const matrixFields = document.getElementById('matrix-fields');
+    const rulesFields = document.getElementById('rules-fields');
     const stockTypeRow = document.getElementById('stock-type').closest('.form-row');
     const rollNumberRow = document.getElementById('roll-number-row');
     
@@ -36,6 +38,8 @@ function toggleProductFields() {
     blanketFields.style.display = 'none';
     lithoPerfFields.style.display = 'none';
     chemicalFields.style.display = 'none';
+    matrixFields.style.display = 'none';
+    rulesFields.style.display = 'none';
     
     // Show relevant fields and adjust stock type options
     if (productType === 'litho perf') {
@@ -46,6 +50,16 @@ function toggleProductFields() {
     } else if (productType === 'chemicals') {
         chemicalFields.style.display = 'block';
         // Hide stock type for chemicals (always in ltrs/kg)
+        stockTypeRow.style.display = 'none';
+        rollNumberRow.style.display = 'none';
+    } else if (productType === 'matrix') {
+        matrixFields.style.display = 'block';
+        // Hide stock type for matrix (always packets)
+        stockTypeRow.style.display = 'none';
+        rollNumberRow.style.display = 'none';
+    } else if (productType === 'rules') {
+        rulesFields.style.display = 'block';
+        // Hide stock type for rules (always coils/packets)
         stockTypeRow.style.display = 'none';
         rollNumberRow.style.display = 'none';
     } else if (productType === 'blankets' || productType === 'underpacking') {
@@ -383,6 +397,31 @@ if (document.getElementById('stock-in-form')) {
                 productFormat: format,
                 chemicalUnit: unit,
                 stock: stock,
+                sqMtr: null,
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else if (productType === 'matrix') {
+            // Creasing Matrix specific data
+            formData = {
+                ...formData,
+                stockType: 'pieces', // Always packets
+                matrixFormat: document.getElementById('matrix-format').value,
+                matrixSizeWidth: parseFloat(document.getElementById('matrix-size-width').value),
+                matrixSizeHeight: parseFloat(document.getElementById('matrix-size-height').value),
+                numberOfPieces: 1, // Default for packets
+                sqMtr: null,
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else if (productType === 'rules') {
+            // Rules specific data
+            formData = {
+                ...formData,
+                stockType: document.getElementById('rule-packed-as').value, // coil or packets
+                ruleFormat: document.getElementById('rule-format').value,
+                rulePackedAs: document.getElementById('rule-packed-as').value,
+                numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
                 sqMtr: null,
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null

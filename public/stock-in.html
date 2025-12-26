@@ -135,6 +135,47 @@
                     </div>
                 </div>
 
+                <!-- Creasing Matrix Fields -->
+                <div id="matrix-fields" class="product-fields" style="display: none;">
+                    <div class="form-row">
+                        <label for="matrix-format">Product Format:</label>
+                        <select id="matrix-format" required>
+                            <option value="">Select Format</option>
+                            <option value="9 MM">9 MM</option>
+                            <option value="11 MM">11 MM</option>
+                            <option value="13 MM">13 MM</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="matrix-size">Product Size:</label>
+                        <input type="number" id="matrix-size-width" step="0.01" placeholder="Width" required>
+                        <span style="margin: 0 10px;">x</span>
+                        <input type="number" id="matrix-size-height" step="0.01" placeholder="Height" required>
+                    </div>
+                </div>
+
+                <!-- Rules Fields -->
+                <div id="rules-fields" class="product-fields" style="display: none;">
+                    <div class="form-row">
+                        <label for="rule-format">Product Format:</label>
+                        <select id="rule-format" required>
+                            <option value="">Select Format</option>
+                            <option value="creasing rule">Creasing Rule</option>
+                            <option value="cutting rule">Cutting Rule</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="rule-packed-as">Product Packed As:</label>
+                        <select id="rule-packed-as" required>
+                            <option value="">Select Packing</option>
+                            <option value="coil">Coil</option>
+                            <option value="packets">Packets</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Common Fields -->
                 <div class="form-row">
                     <label for="stock-type">Stock Type:</label>
