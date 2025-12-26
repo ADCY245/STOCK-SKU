@@ -17,10 +17,46 @@ async function loadProductsForStock() {
     }
 }
 
-// Load product names based on product type (no longer needed for text input)
-function loadProductNames() {
-    // Function kept for compatibility but no longer needed since we use text input
-    updateRollNumberRequirement();
+// Load product names based on product type
+async function loadProductNames() {
+    const productType = document.getElementById('product-type').value;
+    const productNameInput = document.getElementById('product-name');
+    
+    if (!productNameInput || !productType) {
+        return;
+    }
+    
+    try {
+        const products = await api.getProducts();
+        
+        // Filter products by selected product type
+        const filteredProducts = products.filter(product => product.category === productType);
+        
+        // Create a datalist for autocomplete suggestions
+        let datalist = document.getElementById('product-name-datalist');
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = 'product-name-datalist';
+            productNameInput.parentNode.appendChild(datalist);
+            productNameInput.setAttribute('list', 'product-name-datalist');
+        }
+        
+        // Clear existing options
+        datalist.innerHTML = '';
+        
+        // Add filtered products to datalist
+        filteredProducts.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.name;
+            datalist.appendChild(option);
+        });
+        
+        // Update roll number requirement
+        updateRollNumberRequirement();
+        
+    } catch (error) {
+        console.error('Error loading product names:', error);
+    }
 }
 
 // Toggle product fields based on product type
