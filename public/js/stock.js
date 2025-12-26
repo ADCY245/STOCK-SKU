@@ -26,52 +26,97 @@ function loadProductNames() {
 // Toggle product fields based on product type
 function toggleProductFields() {
     const productType = document.getElementById('product-type').value;
-    const blanketFields = document.getElementById('blanket-fields');
-    const lithoPerfFields = document.getElementById('litho-perf-fields');
-    const chemicalFields = document.getElementById('chemical-fields');
-    const matrixFields = document.getElementById('matrix-fields');
-    const rulesFields = document.getElementById('rules-fields');
-    const stockTypeRow = document.getElementById('stock-type').closest('.form-row');
-    const rollNumberRow = document.getElementById('roll-number-row');
     
     // Hide all product-specific fields first
-    blanketFields.style.display = 'none';
-    lithoPerfFields.style.display = 'none';
-    chemicalFields.style.display = 'none';
-    matrixFields.style.display = 'none';
-    rulesFields.style.display = 'none';
+    document.querySelectorAll('.product-fields').forEach(field => {
+        field.style.display = 'none';
+    });
     
-    // Show relevant fields and adjust stock type options
-    if (productType === 'litho perf') {
-        lithoPerfFields.style.display = 'block';
-        // Hide stock type for litho perf (always packets)
+    // Hide common fields for non-blanket/underpacking products
+    const stockTypeRow = document.getElementById('stock-type').parentElement;
+    const rollNumberRow = document.getElementById('roll-number-row');
+    const rollFields = document.getElementById('roll-fields');
+    const piecesFields = document.getElementById('pieces-fields');
+    
+    if (productType === 'blankets' || productType === 'underpacking') {
+        // Show blanket/underpacking fields
+        document.getElementById('blanket-fields').style.display = 'block';
+        
+        // Show common fields for blankets/underpacking
+        stockTypeRow.style.display = 'block';
+        rollNumberRow.style.display = 'flex';
+        
+        // Make stock type required
+        document.getElementById('stock-type').required = true;
+        
+        // Show appropriate stock type fields
+        toggleStockType();
+    } else if (productType === 'litho perf') {
+        // Show litho perf fields
+        document.getElementById('litho-perf-fields').style.display = 'block';
+        
+        // Hide common fields for litho perf
         stockTypeRow.style.display = 'none';
         rollNumberRow.style.display = 'none';
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'none';
+        
+        // Remove required from stock type
+        document.getElementById('stock-type').required = false;
+        document.getElementById('stock-type').value = '';
     } else if (productType === 'chemicals') {
-        chemicalFields.style.display = 'block';
-        // Hide stock type for chemicals (always in ltrs/kg)
+        // Show chemicals fields
+        document.getElementById('chemical-fields').style.display = 'block';
+        
+        // Hide common fields for chemicals
         stockTypeRow.style.display = 'none';
         rollNumberRow.style.display = 'none';
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'none';
+        
+        // Remove required from stock type
+        document.getElementById('stock-type').required = false;
+        document.getElementById('stock-type').value = '';
+        
+        // Initialize stock unit display
+        updateStockUnitDisplay();
     } else if (productType === 'matrix') {
-        matrixFields.style.display = 'block';
-        // Hide stock type for matrix (always packets)
+        // Show matrix fields
+        document.getElementById('matrix-fields').style.display = 'block';
+        
+        // Hide common fields for matrix
         stockTypeRow.style.display = 'none';
         rollNumberRow.style.display = 'none';
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'none';
+        
+        // Remove required from stock type
+        document.getElementById('stock-type').required = false;
+        document.getElementById('stock-type').value = '';
     } else if (productType === 'rules') {
-        rulesFields.style.display = 'block';
-        // Hide stock type for rules (always coils/packets)
+        // Show rules fields
+        document.getElementById('rules-fields').style.display = 'block';
+        
+        // Hide common fields for rules
         stockTypeRow.style.display = 'none';
         rollNumberRow.style.display = 'none';
-    } else if (productType === 'blankets' || productType === 'underpacking') {
-        blanketFields.style.display = 'block';
-        stockTypeRow.style.display = 'flex';
-        updateRollNumberRequirement();
-        updateFieldOrder();
+        rollFields.style.display = 'none';
+        piecesFields.style.display = 'none';
+        
+        // Remove required from stock type
+        document.getElementById('stock-type').required = false;
+        document.getElementById('stock-type').value = '';
     } else {
-        // For other product types, show basic fields
-        blanketFields.style.display = 'block';
-        stockTypeRow.style.display = 'flex';
-        rollNumberRow.style.display = 'none';
+        // Hide all product fields for 'other' or empty selection
+        document.getElementById('blanket-fields').style.display = 'block';
+        stockTypeRow.style.display = 'block';
+        rollNumberRow.style.display = 'flex';
+        
+        // Make stock type required for other products
+        document.getElementById('stock-type').required = true;
+        
+        // Show appropriate stock type fields
+        toggleStockType();
     }
 }
 
