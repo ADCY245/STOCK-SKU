@@ -378,10 +378,10 @@ if (document.getElementById('stock-in-form')) {
                 ...formData,
                 stockType: 'pieces', // Always packets
                 productTPI: document.getElementById('product-tpi').value || null,
-                lithoProductType: document.getElementById('litho-product-type').value,
+                lithoPieceType: document.getElementById('litho-piece-type').value,
                 perforationType: document.getElementById('perforation-type').value,
                 numberOfPieces: 1, // Default for packets
-                sqMtr: null,
+                sqMtr: null, // No sq.mtr for litho perf
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -397,7 +397,7 @@ if (document.getElementById('stock-in-form')) {
                 productFormat: format,
                 chemicalUnit: unit,
                 stock: stock,
-                sqMtr: null,
+                sqMtr: null, // No sq.mtr for chemicals
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -410,7 +410,7 @@ if (document.getElementById('stock-in-form')) {
                 matrixSizeWidth: parseFloat(document.getElementById('matrix-size-width').value),
                 matrixSizeHeight: parseFloat(document.getElementById('matrix-size-height').value),
                 numberOfPieces: 1, // Default for packets
-                sqMtr: null,
+                sqMtr: null, // No sq.mtr for matrix
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -422,7 +422,7 @@ if (document.getElementById('stock-in-form')) {
                 ruleFormat: document.getElementById('rule-format').value,
                 rulePackedAs: document.getElementById('rule-packed-as').value,
                 numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
-                sqMtr: null,
+                sqMtr: null, // No sq.mtr for rules
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };

@@ -92,13 +92,25 @@
                     </div>
 
                     <div class="form-row">
-                        <label for="litho-product-type">Product Type:</label>
-                        <input type="text" id="litho-product-type" placeholder="e.g., Perf Sheet, Perf Roll" required>
+                        <label for="litho-piece-type">Product Piece Type:</label>
+                        <select id="litho-piece-type" required>
+                            <option value="">Select Piece Type</option>
+                            <option value="card">Card</option>
+                            <option value="paper">Paper</option>
+                        </select>
                     </div>
 
                     <div class="form-row">
                         <label for="perforation-type">Perforation Type:</label>
-                        <input type="text" id="perforation-type" placeholder="e.g., Micro Perf, Standard Perf" required>
+                        <select id="perforation-type" required>
+                            <option value="">Select Perforation Type</option>
+                            <option value="center">Center</option>
+                            <option value="side">Side</option>
+                            <option value="center-micro perf">Center Micro Perf</option>
+                            <option value="side-micro perf">Side Micro Perf</option>
+                            <option value="center score">Center Score</option>
+                            <option value="center slit">Center Slit</option>
+                        </select>
                     </div>
                 </div>
 
