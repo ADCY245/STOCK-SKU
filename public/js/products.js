@@ -33,11 +33,13 @@ function displayProducts() {
             new Date(product.lastUpdated).toLocaleDateString() : 'Never';
 
         // Determine stock quantity and size based on type
-        let stockQuantity, stockSize;
+        let stockQuantity, stockSize, stockQuantityUnit, stockSizeUnit;
         if (isBlanketPieces) {
             stockQuantity = stockLevel.toFixed(0); // Number of pieces
+            stockQuantityUnit = 'pcs';
             const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-            stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
+            stockSize = `${sqMtrPerPiece.toFixed(4)}`;
+            stockSizeUnit = 'sq.mtr/pc';
         } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
             // For rolls (check if has length and width dimensions but not blanket pieces)
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
@@ -51,14 +53,41 @@ function displayProducts() {
             // For underpacking, stock quantity is width; for others, it's length
             if (product.category === 'underpacking') {
                 stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
+                stockQuantityUnit = 'mtr';
             } else {
                 stockQuantity = lengthInMtr.toFixed(2); // Length in meters for other rolls
+                stockQuantityUnit = 'mtr';
             }
-            stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+            stockSize = `${calculatedSqMtr.toFixed(4)}`;
+            stockSizeUnit = 'sq.mtr';
         } else {
-            // Default case for other products
-            stockQuantity = stockLevel.toFixed(2);
-            stockSize = 'sq.mtr';
+            // Default case for other products - determine units based on category
+            if (product.category === 'chemicals') {
+                stockQuantity = stockLevel.toFixed(2);
+                stockQuantityUnit = 'ltrs';
+                stockSize = '-';
+                stockSizeUnit = '';
+            } else if (product.category === 'rules') {
+                stockQuantity = stockLevel.toFixed(0);
+                stockQuantityUnit = 'coils';
+                stockSize = '-';
+                stockSizeUnit = '';
+            } else if (product.category === 'matrix') {
+                stockQuantity = stockLevel.toFixed(0);
+                stockQuantityUnit = 'pkts';
+                stockSize = '-';
+                stockSizeUnit = '';
+            } else if (product.category === 'litho perf') {
+                stockQuantity = stockLevel.toFixed(0);
+                stockQuantityUnit = 'pkts';
+                stockSize = '-';
+                stockSizeUnit = '';
+            } else {
+                stockQuantity = stockLevel.toFixed(2);
+                stockQuantityUnit = 'units';
+                stockSize = '-';
+                stockSizeUnit = '';
+            }
         }
         
         // Get roll number from dimensions or detailed stock
@@ -83,8 +112,8 @@ function displayProducts() {
                 </button>
             </td>
             <td>${product.category}</td>
-            <td>${stockQuantity}</td>
-            <td>${stockSize}</td>
+            <td>${stockQuantity} <span style="color: #666; font-size: 0.9em;">[${stockQuantityUnit}]</span></td>
+            <td>${stockSize} <span style="color: #666; font-size: 0.9em;">[${stockSizeUnit}]</span></td>
             <td>${rollNumber}</td>
             <td>${lastUpdated}</td>
             <td><span class="status ${statusClass}">${status}</span></td>
@@ -276,11 +305,13 @@ function exportToExcel() {
                 new Date(product.lastUpdated).toLocaleDateString() : 'Never';
             
             // Determine stock quantity and size based on type
-            let stockQuantity, stockSize;
+            let stockQuantity, stockSize, stockQuantityUnit, stockSizeUnit;
             if (isBlanketPieces) {
                 stockQuantity = stockLevel.toFixed(0); // Number of pieces
+                stockQuantityUnit = 'pcs';
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
                 stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
+                stockSizeUnit = '';
             } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
                 // For rolls (check if has length and width dimensions but not blanket pieces)
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
@@ -294,14 +325,41 @@ function exportToExcel() {
                 // For underpacking, stock quantity is width; for others, it's length
                 if (product.category === 'underpacking') {
                     stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
+                    stockQuantityUnit = 'mtr';
                 } else {
                     stockQuantity = lengthInMtr.toFixed(2); // Length in meters for other rolls
+                    stockQuantityUnit = 'mtr';
                 }
                 stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+                stockSizeUnit = '';
             } else {
-                // Default case for other products
-                stockQuantity = stockLevel.toFixed(2);
-                stockSize = 'sq.mtr';
+                // Default case for other products - determine units based on category
+                if (product.category === 'chemicals') {
+                    stockQuantity = stockLevel.toFixed(2);
+                    stockQuantityUnit = 'ltrs';
+                    stockSize = '-';
+                    stockSizeUnit = '';
+                } else if (product.category === 'rules') {
+                    stockQuantity = stockLevel.toFixed(0);
+                    stockQuantityUnit = 'coils';
+                    stockSize = '-';
+                    stockSizeUnit = '';
+                } else if (product.category === 'matrix') {
+                    stockQuantity = stockLevel.toFixed(0);
+                    stockQuantityUnit = 'pkts';
+                    stockSize = '-';
+                    stockSizeUnit = '';
+                } else if (product.category === 'litho perf') {
+                    stockQuantity = stockLevel.toFixed(0);
+                    stockQuantityUnit = 'pkts';
+                    stockSize = '-';
+                    stockSizeUnit = '';
+                } else {
+                    stockQuantity = stockLevel.toFixed(2);
+                    stockQuantityUnit = 'units';
+                    stockSize = '-';
+                    stockSizeUnit = '';
+                }
             }
             
             // Get roll number from dimensions
@@ -324,7 +382,7 @@ function exportToExcel() {
             return [
                 `"${displayName}"`,
                 `"${product.category}"`,
-                `"${stockQuantity}"`,
+                `"${stockQuantity} [${stockQuantityUnit}]"`,
                 `"${stockSize}"`,
                 `"${rollNumber}"`,
                 `"${lastUpdated}"`,
