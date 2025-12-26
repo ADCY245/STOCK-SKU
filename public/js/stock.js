@@ -516,6 +516,7 @@ if (document.getElementById('stock-in-form')) {
                 stock: parseFloat(document.getElementById('litho-stock').value),
                 numberOfPieces: 1, // Default for packets
                 sqMtr: null, // No sq.mtr for litho perf
+                thickness: null, // No thickness for litho perf
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -530,6 +531,7 @@ if (document.getElementById('stock-in-form')) {
                 stock: parseFloat(document.getElementById('matrix-stock').value),
                 numberOfPieces: 1, // Default for packets
                 sqMtr: null, // No sq.mtr for matrix
+                thickness: null, // No thickness for matrix
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -543,6 +545,7 @@ if (document.getElementById('stock-in-form')) {
                 stock: parseFloat(document.getElementById('rule-stock').value),
                 numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
                 sqMtr: null, // No sq.mtr for rules
+                thickness: null, // No thickness for rules
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -559,6 +562,7 @@ if (document.getElementById('stock-in-form')) {
                 chemicalUnit: unit,
                 stock: stock,
                 sqMtr: null, // No sq.mtr for chemicals
+                thickness: null, // No thickness for chemicals
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
