@@ -425,8 +425,36 @@ if (document.getElementById('stock-in-form')) {
                 productTPI: document.getElementById('product-tpi').value || null,
                 lithoPieceType: document.getElementById('litho-piece-type').value,
                 perforationType: document.getElementById('perforation-type').value,
+                stock: parseFloat(document.getElementById('litho-stock').value),
                 numberOfPieces: 1, // Default for packets
                 sqMtr: null, // No sq.mtr for litho perf
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else if (productType === 'matrix') {
+            // Creasing Matrix specific data
+            formData = {
+                ...formData,
+                stockType: 'pieces', // Always packets
+                matrixFormat: document.getElementById('matrix-format').value,
+                matrixSizeWidth: parseFloat(document.getElementById('matrix-size-width').value),
+                matrixSizeHeight: parseFloat(document.getElementById('matrix-size-height').value),
+                stock: parseFloat(document.getElementById('matrix-stock').value),
+                numberOfPieces: 1, // Default for packets
+                sqMtr: null, // No sq.mtr for matrix
+                importDate: document.getElementById('import-date').value || null,
+                takenDate: document.getElementById('taken-date').value || null
+            };
+        } else if (productType === 'rules') {
+            // Rules specific data
+            formData = {
+                ...formData,
+                stockType: document.getElementById('rule-packed-as').value, // coil or packets
+                ruleFormat: document.getElementById('rule-format').value,
+                rulePackedAs: document.getElementById('rule-packed-as').value,
+                stock: parseFloat(document.getElementById('rule-stock').value),
+                numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
+                sqMtr: null, // No sq.mtr for rules
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
@@ -443,31 +471,6 @@ if (document.getElementById('stock-in-form')) {
                 chemicalUnit: unit,
                 stock: stock,
                 sqMtr: null, // No sq.mtr for chemicals
-                importDate: document.getElementById('import-date').value || null,
-                takenDate: document.getElementById('taken-date').value || null
-            };
-        } else if (productType === 'matrix') {
-            // Creasing Matrix specific data
-            formData = {
-                ...formData,
-                stockType: 'pieces', // Always packets
-                matrixFormat: document.getElementById('matrix-format').value,
-                matrixSizeWidth: parseFloat(document.getElementById('matrix-size-width').value),
-                matrixSizeHeight: parseFloat(document.getElementById('matrix-size-height').value),
-                numberOfPieces: 1, // Default for packets
-                sqMtr: null, // No sq.mtr for matrix
-                importDate: document.getElementById('import-date').value || null,
-                takenDate: document.getElementById('taken-date').value || null
-            };
-        } else if (productType === 'rules') {
-            // Rules specific data
-            formData = {
-                ...formData,
-                stockType: document.getElementById('rule-packed-as').value, // coil or packets
-                ruleFormat: document.getElementById('rule-format').value,
-                rulePackedAs: document.getElementById('rule-packed-as').value,
-                numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
-                sqMtr: null, // No sq.mtr for rules
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };
