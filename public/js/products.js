@@ -64,22 +64,24 @@ function displayProducts() {
         // Get roll number from dimensions or detailed stock
         let rollNumber = product.dimensions?.rollNumber || 'N/A';
         
-        // Create differentiated product name for display (without roll number brackets)
+        // Create differentiated product name for display (with thickness in brackets)
         let displayName = product.name;
-        if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
-            const length = product.dimensions.lengthUnit === 'mm' ? 
-                (product.dimensions.length / 1000).toFixed(2) + 'm' : 
-                product.dimensions.length + 'm';
-            const width = product.dimensions.widthUnit === 'mm' ? 
-                (product.dimensions.width / 1000).toFixed(2) + 'm' : 
-                product.dimensions.width + 'm';
-            displayName += ` (${length} x ${width})`;
+        if (product.dimensions?.thickness) {
+            const thickness = product.dimensions.thicknessUnit === 'micron' ? 
+                product.dimensions.thickness + 'μ' : 
+                product.dimensions.thickness + 'mm';
+            displayName += ` (${thickness})`;
         } else if (isBlanketPieces) {
             displayName += ' (Pieces)';
         }
 
         row.innerHTML = `
-            <td>${displayName}</td>
+            <td>
+                ${displayName}
+                <button class="info-btn" onclick="showProductInfo('${product._id}')" title="More Info">
+                    <i>i</i>
+                </button>
+            </td>
             <td>${product.category}</td>
             <td>${stockQuantity}</td>
             <td>${stockSize}</td>
@@ -89,6 +91,80 @@ function displayProducts() {
         `;
         tbody.appendChild(row);
     });
+}
+
+// Show detailed product information
+function showProductInfo(productId) {
+    // Find the product from the current data
+    const product = allProducts.find(p => p._id === productId);
+    if (!product) return;
+    
+    // Create detailed information HTML
+    const dimensions = product.dimensions || {};
+    const info = `
+        <div class="product-info-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${product.name}</h3>
+                    <button class="close-btn" onclick="closeProductInfo()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-section">
+                        <h4>Basic Information</h4>
+                        <p><strong>Product Name:</strong> ${product.name}</p>
+                        <p><strong>Category:</strong> ${product.category}</p>
+                        <p><strong>Stock Level:</strong> ${product.stock}</p>
+                        <p><strong>Last Updated:</strong> ${product.lastUpdated ? new Date(product.lastUpdated).toLocaleString() : 'Never'}</p>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4>Dimensions</h4>
+                        ${dimensions.length ? `<p><strong>Length:</strong> ${dimensions.length} ${dimensions.lengthUnit || 'mm'}</p>` : ''}
+                        ${dimensions.width ? `<p><strong>Width:</strong> ${dimensions.width} ${dimensions.widthUnit || 'mm'}</p>` : ''}
+                        ${dimensions.thickness ? `<p><strong>Thickness:</strong> ${dimensions.thickness} ${dimensions.thicknessUnit || 'mm'}</p>` : ''}
+                        ${dimensions.rollNumber ? `<p><strong>Roll Number:</strong> ${dimensions.rollNumber}</p>` : ''}
+                        ${dimensions.stockType ? `<p><strong>Stock Type:</strong> ${dimensions.stockType}</p>` : ''}
+                        ${dimensions.numberOfPieces ? `<p><strong>Number of Pieces:</strong> ${dimensions.numberOfPieces}</p>` : ''}
+                        ${dimensions.sqMtrPerPiece ? `<p><strong>Sq.mtr per Piece:</strong> ${dimensions.sqMtrPerPiece.toFixed(4)}</p>` : ''}
+                        ${dimensions.totalSqMtr ? `<p><strong>Total Sq.mtr:</strong> ${dimensions.totalSqMtr.toFixed(4)}</p>` : ''}
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4>Stock Information</h4>
+                        <p><strong>Current Stock:</strong> ${product.stock}</p>
+                        <p><strong>Status:</strong> ${getStockStatus(product.stock, product.category === 'blankets' && dimensions.stockType === 'pieces')}</p>
+                        <p><strong>Imported:</strong> ${product.imported ? 'Yes' : 'No'}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Create and show modal
+    const modal = document.createElement('div');
+    modal.innerHTML = info;
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Close product info modal
+function closeProductInfo() {
+    const modal = document.querySelector('.product-info-modal');
+    if (modal) {
+        modal.remove();
+    }
 }
 
 // Get stock status text
