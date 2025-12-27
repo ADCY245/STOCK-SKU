@@ -74,23 +74,15 @@ function displayProducts() {
             if (product.category === 'chemicals') {
                 const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
                 const stockInLiters = product.dimensions?.stock || stockLevel;
+                const productFormat = product.dimensions?.productFormat || 'N/A';
                 
-                // Calculate number of containers based on unit
-                let numberOfContainers;
-                if (chemicalUnit === 'ltrs') {
-                    numberOfContainers = stockLevel; // 1 liter = 1 container
-                    stockQuantityUnit = 'cans';
-                } else if (chemicalUnit === 'drums') {
-                    numberOfContainers = Math.ceil(stockLevel / 200); // Assuming 200L drums
-                    stockQuantityUnit = 'drums';
-                } else {
-                    numberOfContainers = stockLevel;
-                    stockQuantityUnit = 'containers';
-                }
+                // Stock quantity is always number of containers
+                stockQuantity = stockLevel.toFixed(0);
+                stockQuantityUnit = 'containers';
                 
-                stockQuantity = numberOfContainers.toFixed(0);
+                // Stock size is the actual volume/weight
                 stockSize = stockInLiters.toFixed(2);
-                stockSizeUnit = 'ltrs';
+                stockSizeUnit = chemicalUnit;
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'coils';
@@ -129,7 +121,8 @@ function displayProducts() {
             rollNumberInfo = `${formattedWidth} x ${formattedHeight}`;
         } else if (product.category === 'chemicals') {
             const productFormat = product.dimensions?.productFormat || 'N/A';
-            rollNumberInfo = productFormat;
+            const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
+            rollNumberInfo = `${productFormat} (${chemicalUnit})`;
         } else {
             rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
         }
