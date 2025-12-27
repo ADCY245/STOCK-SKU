@@ -66,7 +66,7 @@ function toggleProductFields() {
     const lithoFieldIds = ['litho-piece-type', 'perforation-type', 'litho-stock'];
     const chemicalFieldIds = ['product-format', 'chemical-unit', 'chemical-stock'];
     const matrixFieldIds = ['matrix-format', 'matrix-size-width', 'matrix-size-height', 'matrix-stock'];
-    const rulesFieldIds = ['rule-format', 'rule-packed-as', 'rule-stock'];
+    const rulesFieldIds = ['rule-format', 'rule-packed-as', 'rule-stock', 'rule-container-length', 'rule-container-width', 'rule-container-type'];
 
     const allFieldIds = [
         ...blanketFieldIds,
@@ -552,6 +552,9 @@ if (document.getElementById('stock-in-form')) {
                 stockType: document.getElementById('rule-packed-as').value, // coil or packets
                 ruleFormat: document.getElementById('rule-format').value,
                 rulePackedAs: document.getElementById('rule-packed-as').value,
+                ruleContainerLength: parseFloat(document.getElementById('rule-container-length').value),
+                ruleContainerWidth: parseFloat(document.getElementById('rule-container-width').value),
+                ruleContainerType: document.getElementById('rule-container-type').value,
                 stock: parseFloat(document.getElementById('rule-stock').value),
                 numberOfPieces: document.getElementById('rule-packed-as').value === 'packets' ? 1 : null,
                 sqMtr: null, // No sq.mtr for rules
@@ -626,7 +629,8 @@ if (document.getElementById('stock-in-form')) {
                 
                 // Trigger change event to show correct fields
                 document.getElementById('product-type').dispatchEvent(new Event('change'));
-                
+                resetRuleContainerFields();
+
                 alert('Stock added successfully');
                 // Auto-refresh products display
                 refreshProductsDisplay();
@@ -784,6 +788,7 @@ async function handleDuplicateRoll(errorResponse, formData) {
         
         // Trigger change event to show correct fields
         document.getElementById('product-type').dispatchEvent(new Event('change'));
+        resetRuleContainerFields();
     } else {
         // User says it's not a duplicate - ask for import date
         const importDate = prompt('Please enter import date (YYYY-MM-DD) to differentiate this entry:');
@@ -832,6 +837,7 @@ async function handleDuplicateRoll(errorResponse, formData) {
                 
                 // Trigger change event to show correct fields
                 document.getElementById('product-type').dispatchEvent(new Event('change'));
+                resetRuleContainerFields();
                 
                 // Reload products to show the new entry
                 loadProductsForStock();

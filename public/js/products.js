@@ -17,6 +17,14 @@ async function loadProducts() {
 }
 
 // Display products in table
+function formatDimension(value, decimals = 2) {
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (Number.isNaN(num)) {
+        return 'N/A';
+    }
+    return num.toFixed(decimals);
+}
+
 function displayProducts() {
     const tbody = document.getElementById('products-tbody');
     const categoryFilter = document.getElementById('category-filter').value;
@@ -90,9 +98,20 @@ function displayProducts() {
                 stockSizeUnit = chemicalUnit;
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
-                stockQuantityUnit = 'coils';
-                stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
-                stockSizeUnit = 'coils';
+                stockQuantityUnit = '';
+
+                const containerLength = product.dimensions?.ruleContainerLength;
+                const containerWidth = product.dimensions?.ruleContainerWidth;
+                const containerType = product.dimensions?.ruleContainerType;
+
+                if (containerLength != null && containerWidth != null && containerType) {
+                    const lengthDisplay = formatDimension(containerLength);
+                    const widthDisplay = formatDimension(containerWidth);
+                    stockSize = `${lengthDisplay} x ${widthDisplay} x ${containerType}`;
+                } else {
+                    stockSize = 'N/A';
+                }
+                stockSizeUnit = '';
             } else if (product.category === 'matrix') {
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'pkts';
@@ -111,25 +130,32 @@ function displayProducts() {
             }
         }
         
-        // Get roll number or product-specific info
-        let rollNumberInfo;
+        // Get product-specific details info
+        let detailsInfo;
         if (product.category === 'litho perf') {
             const pieceType = product.dimensions?.lithoPieceType || 'N/A';
             const perforationType = product.dimensions?.perforationType || 'N/A';
-            rollNumberInfo = `${pieceType} / ${perforationType}`;
+            detailsInfo = `${pieceType} / ${perforationType}`;
         } else if (product.category === 'matrix') {
             const width = product.dimensions?.matrixSizeWidth || 'N/A';
             const height = product.dimensions?.matrixSizeHeight || 'N/A';
             // Format to preserve decimal places
             const formattedWidth = width !== 'N/A' ? parseFloat(width).toFixed(1) : width;
             const formattedHeight = height !== 'N/A' ? parseFloat(height).toFixed(1) : height;
-            rollNumberInfo = `${formattedWidth} x ${formattedHeight}`;
+            detailsInfo = `${formattedWidth} x ${formattedHeight}`;
         } else if (product.category === 'chemicals') {
             const productFormat = product.dimensions?.productFormat || 'N/A';
             const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
-            rollNumberInfo = `${productFormat} ${chemicalUnit} container format`;
+            detailsInfo = `${productFormat} ${chemicalUnit} container format`;
+        } else if (product.category === 'rules') {
+            const rawFormat = product.dimensions?.ruleFormat || 'N/A';
+            const packedAs = product.dimensions?.rulePackedAs || 'N/A';
+            const formatLabelRaw = rawFormat.replace(/\s*rule$/i, '').trim();
+            const formatLabel = formatLabelRaw ? formatLabelRaw.toLowerCase() : rawFormat.toLowerCase();
+            const packedLabel = packedAs ? packedAs.toLowerCase() : 'n/a';
+            detailsInfo = `${formatLabel || 'n/a'} - ${packedLabel}`;
         } else {
-            rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
+            detailsInfo = product.dimensions?.rollNumber || 'N/A';
         }
         
         // Create differentiated product name for display (with thickness in brackets)
@@ -157,6 +183,9 @@ function displayProducts() {
             displayName += ' (Pieces)';
         }
 
+        const quantityUnitDisplay = stockQuantityUnit ? ` <span style="color: #666; font-size: 0.9em;">[${stockQuantityUnit}]</span>` : '';
+        const sizeUnitDisplay = stockSizeUnit ? ` <span style="color: #666; font-size: 0.9em;">[${stockSizeUnit}]</span>` : '';
+
         row.innerHTML = `
             <td>
                 ${displayName}
@@ -165,9 +194,9 @@ function displayProducts() {
                 </button>
             </td>
             <td>${product.category}</td>
-            <td>${stockQuantity} <span style="color: #666; font-size: 0.9em;">[${stockQuantityUnit}]</span></td>
-            <td>${stockSize} <span style="color: #666; font-size: 0.9em;">[${stockSizeUnit}]</span></td>
-            <td>${rollNumberInfo}</td>
+            <td>${stockQuantity}${quantityUnitDisplay}</td>
+            <td>${stockSize}${sizeUnitDisplay}</td>
+            <td>${detailsInfo}</td>
             <td>${lastUpdated}</td>
             <td><span class="status ${statusClass}">${status}</span></td>
         `;
@@ -225,6 +254,7 @@ function showProductInfo(productId) {
                             <p><strong>Format:</strong> ${dimensions.ruleFormat || 'N/A'}</p>
                             <p><strong>Packed As:</strong> ${dimensions.rulePackedAs || 'N/A'}</p>
                             <p><strong>Stock Unit:</strong> ${dimensions.stockUnit || 'N/A'}</p>
+                            ${(dimensions.ruleContainerLength != null && dimensions.ruleContainerWidth != null) ? `<p><strong>Container Size:</strong> ${formatDimension(dimensions.ruleContainerLength)} x ${formatDimension(dimensions.ruleContainerWidth)} x ${dimensions.ruleContainerType || 'N/A'}</p>` : ''}
                         ` : ''}
                         ${product.category === 'chemicals' ? `
                             <p><strong>Format:</strong> ${dimensions.productFormat || 'N/A'}</p>

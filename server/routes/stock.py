@@ -87,7 +87,14 @@ def add_stock_detailed():
     elif product_type == 'matrix':
         type_specific_required.extend(['matrixFormat', 'matrixSizeWidth', 'matrixSizeHeight', 'stock'])
     elif product_type == 'rules':
-        type_specific_required.extend(['ruleFormat', 'rulePackedAs', 'stock'])
+        type_specific_required.extend([
+            'ruleFormat',
+            'rulePackedAs',
+            'stock',
+            'ruleContainerLength',
+            'ruleContainerWidth',
+            'ruleContainerType'
+        ])
     elif product_type == 'chemicals':
         type_specific_required.extend(['productFormat', 'chemicalUnit', 'stock'])
 
@@ -164,7 +171,10 @@ def add_stock_detailed():
                     'stockType': data.get('rulePackedAs'),
                     'ruleFormat': data.get('ruleFormat'),
                     'rulePackedAs': data.get('rulePackedAs'),
-                    'stockUnit': stock_unit
+                    'stockUnit': stock_unit,
+                    'ruleContainerLength': data.get('ruleContainerLength'),
+                    'ruleContainerWidth': data.get('ruleContainerWidth'),
+                    'ruleContainerType': data.get('ruleContainerType')
                 })
             elif product_type == 'chemicals':
                 return sanitize({
@@ -235,7 +245,10 @@ def add_stock_detailed():
                     'ruleFormat': data.get('ruleFormat'),
                     'rulePackedAs': data.get('rulePackedAs'),
                     'stockUnit': stock_unit,
-                    'stock': data.get('stock')
+                    'stock': data.get('stock'),
+                    'ruleContainerLength': data.get('ruleContainerLength'),
+                    'ruleContainerWidth': data.get('ruleContainerWidth'),
+                    'ruleContainerType': data.get('ruleContainerType')
                 }))
                 quantity = float(data.get('stock', 0))
             elif product_type == 'chemicals':
@@ -298,6 +311,17 @@ def add_stock_detailed():
                     'dimensions.matrixSizeHeight': data.get('matrixSizeHeight'),
                     'dimensions.thickness': data.get('thickness'),
                     'dimensions.thicknessUnit': data.get('thicknessUnit', 'mm')
+                })
+            elif product_type == 'rules':
+                # For rules, differentiate by container size, type, format, and packing
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type,
+                    'dimensions.ruleFormat': data.get('ruleFormat'),
+                    'dimensions.rulePackedAs': data.get('rulePackedAs'),
+                    'dimensions.ruleContainerLength': data.get('ruleContainerLength'),
+                    'dimensions.ruleContainerWidth': data.get('ruleContainerWidth'),
+                    'dimensions.ruleContainerType': data.get('ruleContainerType')
                 })
             elif product_type == 'chemicals':
                 # For chemicals products, check name, category, and product format
