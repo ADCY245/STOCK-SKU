@@ -299,6 +299,13 @@ def add_stock_detailed():
                     'dimensions.thickness': data.get('thickness'),
                     'dimensions.thicknessUnit': data.get('thicknessUnit', 'mm')
                 })
+            elif product_type == 'chemicals':
+                # For chemicals products, check name, category, and product format
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type,
+                    'dimensions.productFormat': data.get('productFormat')
+                })
             else:
                 existing_product = db.products.find_one({
                     'name': data['productName'],

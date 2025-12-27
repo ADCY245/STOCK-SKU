@@ -72,9 +72,24 @@ function displayProducts() {
         } else {
             // Default case for other products - determine units based on category
             if (product.category === 'chemicals') {
-                stockQuantity = stockLevel.toFixed(2);
-                stockQuantityUnit = 'ltrs';
-                stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
+                const stockInLiters = product.dimensions?.stock || stockLevel;
+                
+                // Calculate number of containers based on unit
+                let numberOfContainers;
+                if (chemicalUnit === 'ltrs') {
+                    numberOfContainers = stockLevel; // 1 liter = 1 container
+                    stockQuantityUnit = 'cans';
+                } else if (chemicalUnit === 'drums') {
+                    numberOfContainers = Math.ceil(stockLevel / 200); // Assuming 200L drums
+                    stockQuantityUnit = 'drums';
+                } else {
+                    numberOfContainers = stockLevel;
+                    stockQuantityUnit = 'containers';
+                }
+                
+                stockQuantity = numberOfContainers.toFixed(0);
+                stockSize = stockInLiters.toFixed(2);
                 stockSizeUnit = 'ltrs';
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
@@ -112,6 +127,9 @@ function displayProducts() {
             const formattedWidth = width !== 'N/A' ? parseFloat(width).toFixed(1) : width;
             const formattedHeight = height !== 'N/A' ? parseFloat(height).toFixed(1) : height;
             rollNumberInfo = `${formattedWidth} x ${formattedHeight}`;
+        } else if (product.category === 'chemicals') {
+            const productFormat = product.dimensions?.productFormat || 'N/A';
+            rollNumberInfo = productFormat;
         } else {
             rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
         }
