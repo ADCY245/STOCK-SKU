@@ -133,6 +133,13 @@
                     <option value="chemicals">Chemicals</option>
                     <option value="other">Other</option>
                 </select>
+                
+                <label for="imported-filter">Imported:</label>
+                <select id="imported-filter" onchange="filterProducts()">
+                    <option value="">All</option>
+                    <option value="true">Imported</option>
+                    <option value="false">Not Imported</option>
+                </select>
             </div>
             
             <div class="filter-row">

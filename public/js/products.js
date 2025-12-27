@@ -172,6 +172,27 @@ function showProductInfo(productId) {
                         ${dimensions.numberOfPieces ? `<p><strong>Number of Pieces:</strong> ${dimensions.numberOfPieces}</p>` : ''}
                         ${dimensions.sqMtrPerPiece ? `<p><strong>Sq.mtr per Piece:</strong> ${dimensions.sqMtrPerPiece.toFixed(4)}</p>` : ''}
                         ${dimensions.totalSqMtr ? `<p><strong>Total Sq.mtr:</strong> ${dimensions.totalSqMtr.toFixed(4)}</p>` : ''}
+                        
+                        <!-- Product-specific details -->
+                        ${product.category === 'litho perf' ? `
+                            <p><strong>Piece Type:</strong> ${dimensions.lithoPieceType || 'N/A'}</p>
+                            <p><strong>Perforation Type:</strong> ${dimensions.perforationType || 'N/A'}</p>
+                            ${dimensions.productTPI ? `<p><strong>TPI:</strong> ${dimensions.productTPI}</p>` : ''}
+                        ` : ''}
+                        ${product.category === 'matrix' ? `
+                            <p><strong>Format:</strong> ${dimensions.matrixFormat || 'N/A'}</p>
+                            <p><strong>Size:</strong> ${dimensions.matrixSizeWidth || 'N/A'} x ${dimensions.matrixSizeHeight || 'N/A'}</p>
+                            <p><strong>Stock Unit:</strong> ${dimensions.stockUnit || 'N/A'}</p>
+                        ` : ''}
+                        ${product.category === 'rules' ? `
+                            <p><strong>Format:</strong> ${dimensions.ruleFormat || 'N/A'}</p>
+                            <p><strong>Packed As:</strong> ${dimensions.rulePackedAs || 'N/A'}</p>
+                            <p><strong>Stock Unit:</strong> ${dimensions.stockUnit || 'N/A'}</p>
+                        ` : ''}
+                        ${product.category === 'chemicals' ? `
+                            <p><strong>Format:</strong> ${dimensions.productFormat || 'N/A'}</p>
+                            <p><strong>Unit:</strong> ${dimensions.chemicalUnit || 'N/A'}</p>
+                        ` : ''}
                     </div>
                     
                     <div class="info-section">
@@ -243,6 +264,7 @@ function getStatusClass(status) {
 // Filter products by category
 function filterProducts() {
     const categoryFilter = document.getElementById('category-filter').value;
+    const importedFilter = document.getElementById('imported-filter').value;
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
     
     // If no category selected, clear filtered products and display message
@@ -254,10 +276,13 @@ function filterProducts() {
     
     filteredProducts = allProducts.filter(product => {
         const matchesCategory = product.category === categoryFilter;
+        const matchesImported = !importedFilter || 
+            (importedFilter === 'true' && product.imported) ||
+            (importedFilter === 'false' && !product.imported);
         const matchesSearch = !searchTerm || 
             product.name.toLowerCase().includes(searchTerm) ||
             product.category.toLowerCase().includes(searchTerm);
-        return matchesCategory && matchesSearch;
+        return matchesCategory && matchesImported && matchesSearch;
     });
     
     sortProducts();
