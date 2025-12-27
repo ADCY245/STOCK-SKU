@@ -80,7 +80,7 @@ function displayProducts() {
                 stockQuantityUnit = 'containers';
                 
                 // Stock size is the individual container size (format)
-                stockSize = productFormat;
+                stockSize = `${productFormat} ${chemicalUnit} format`;
                 stockSizeUnit = chemicalUnit;
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
