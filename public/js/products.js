@@ -73,14 +73,21 @@ function displayProducts() {
             // Default case for other products - determine units based on category
             if (product.category === 'chemicals') {
                 const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
-                const productFormat = product.dimensions?.productFormat || 'N/A';
-                
-                // Stock quantity is number of containers
-                stockQuantity = stockLevel.toFixed(0);
+                const productFormatRaw = product.dimensions?.productFormat;
+                const productFormatValue = parseFloat(productFormatRaw);
+
+                // Stock quantity is number of containers (total stock divided by container size)
+                if (productFormatValue && productFormatValue > 0) {
+                    const containerCount = stockLevel / productFormatValue;
+                    stockQuantity = containerCount.toFixed(containerCount % 1 === 0 ? 0 : 2);
+                } else {
+                    stockQuantity = stockLevel.toFixed(2);
+                }
                 stockQuantityUnit = 'containers';
-                
-                // Stock size is the individual container size (format)
-                stockSize = `${productFormat} ${chemicalUnit} format`;
+
+                // Stock size shows the container size with unit and format label
+                const formattedProductFormat = productFormatRaw ?? 'N/A';
+                stockSize = `${formattedProductFormat} ${chemicalUnit} format`;
                 stockSizeUnit = chemicalUnit;
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
