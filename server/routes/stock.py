@@ -304,7 +304,7 @@ def add_stock_detailed():
                 'name': data['productName'],
                 'category': product_type,
                 'stock': 0,
-                'imported': True,
+                'imported': data.get('imported', True),
                 'dimensions': new_dimensions,
                 'createdAt': datetime.utcnow()
             }
@@ -459,7 +459,7 @@ def confirm_duplicate_roll():
                 'name': unique_name,
                 'category': roll_data['productType'],
                 'stock': roll_data.get('sqMtr', 0),
-                'imported': True,
+                'imported': roll_data.get('imported', True),
                 'dimensions': dimensions,
                 'createdAt': datetime.utcnow()
             }

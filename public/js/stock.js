@@ -511,6 +511,7 @@ if (document.getElementById('stock-in-form')) {
         let formData = {
             productType: productType,
             productName: document.getElementById('product-name').value,
+            imported: document.getElementById('imported-status').value === 'true'
         };
         
         // Handle different product types
