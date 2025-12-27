@@ -105,13 +105,21 @@ function displayProducts() {
             const pieceType = product.dimensions?.lithoPieceType || 'N/A';
             const perforationType = product.dimensions?.perforationType || 'N/A';
             rollNumberInfo = `${pieceType} / ${perforationType}`;
+        } else if (product.category === 'matrix') {
+            const width = product.dimensions?.matrixSizeWidth || 'N/A';
+            const height = product.dimensions?.matrixSizeHeight || 'N/A';
+            rollNumberInfo = `${width} x ${height}`;
         } else {
             rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
         }
         
         // Create differentiated product name for display (with thickness in brackets)
         let displayName = product.name;
-        if (product.dimensions?.thickness) {
+        if (product.category === 'matrix') {
+            const width = product.dimensions?.matrixSizeWidth || 'N/A';
+            const height = product.dimensions?.matrixSizeHeight || 'N/A';
+            displayName += ` (${width} x ${height})`;
+        } else if (product.dimensions?.thickness) {
             const thickness = product.dimensions.thicknessUnit === 'micron' ? 
                 product.dimensions.thickness + 'μ' : 
                 product.dimensions.thickness + 'mm';
