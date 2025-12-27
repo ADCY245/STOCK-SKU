@@ -267,12 +267,14 @@ def add_stock_detailed():
                 })
             elif stock_type == 'pieces':
                 if product_type == 'matrix':
-                    # For matrix products, check name, category, and size dimensions
+                    # For matrix products, check name, category, size dimensions, and thickness
                     existing_product = db.products.find_one({
                         'name': data['productName'],
                         'category': product_type,
                         'dimensions.matrixSizeWidth': data.get('matrixSizeWidth'),
-                        'dimensions.matrixSizeHeight': data.get('matrixSizeHeight')
+                        'dimensions.matrixSizeHeight': data.get('matrixSizeHeight'),
+                        'dimensions.thickness': data.get('thickness'),
+                        'dimensions.thicknessUnit': data.get('thicknessUnit', 'mm')
                     })
                 else:
                     # For other pieces products (litho perf, rules)
@@ -288,12 +290,14 @@ def add_stock_detailed():
                 })
         else:
             if product_type == 'matrix':
-                # For matrix products without stock type, check name, category, and size dimensions
+                # For matrix products without stock type, check name, category, size dimensions, and thickness
                 existing_product = db.products.find_one({
                     'name': data['productName'],
                     'category': product_type,
                     'dimensions.matrixSizeWidth': data.get('matrixSizeWidth'),
-                    'dimensions.matrixSizeHeight': data.get('matrixSizeHeight')
+                    'dimensions.matrixSizeHeight': data.get('matrixSizeHeight'),
+                    'dimensions.thickness': data.get('thickness'),
+                    'dimensions.thicknessUnit': data.get('thicknessUnit', 'mm')
                 })
             else:
                 existing_product = db.products.find_one({

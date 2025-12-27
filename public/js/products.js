@@ -118,7 +118,14 @@ function displayProducts() {
         if (product.category === 'matrix') {
             const width = product.dimensions?.matrixSizeWidth || 'N/A';
             const height = product.dimensions?.matrixSizeHeight || 'N/A';
-            displayName += ` (${width} x ${height})`;
+            const thickness = product.dimensions?.thickness;
+            if (thickness) {
+                const thicknessUnit = product.dimensions.thicknessUnit === 'micron' ? 
+                    thickness + 'μ' : thickness + 'mm';
+                displayName += ` (${width} x ${height}, ${thicknessUnit})`;
+            } else {
+                displayName += ` (${width} x ${height})`;
+            }
         } else if (product.dimensions?.thickness) {
             const thickness = product.dimensions.thicknessUnit === 'micron' ? 
                 product.dimensions.thickness + 'μ' : 
