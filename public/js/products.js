@@ -73,15 +73,14 @@ function displayProducts() {
             // Default case for other products - determine units based on category
             if (product.category === 'chemicals') {
                 const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
-                const stockInLiters = product.dimensions?.stock || stockLevel;
                 const productFormat = product.dimensions?.productFormat || 'N/A';
                 
-                // Stock quantity is always number of containers
+                // Stock quantity is number of containers
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'containers';
                 
-                // Stock size is the actual volume/weight
-                stockSize = stockInLiters.toFixed(2);
+                // Stock size is the individual container size (format)
+                stockSize = productFormat;
                 stockSizeUnit = chemicalUnit;
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
