@@ -55,12 +55,16 @@
                 </div>
 
                 <div class="form-row">
-                    <label for="imported-status">Material Source:</label>
-                    <select id="imported-status" required>
-                        <option value="">Select Source</option>
-                        <option value="true">Imported</option>
-                        <option value="false">Local</option>
+                    <label for="imported">Imported:</label>
+                    <select id="imported" onchange="toggleImportDate()" required>
+                        <option value="true" selected>Yes</option>
+                        <option value="false">No</option>
                     </select>
+                </div>
+
+                <div class="form-row" id="import-date-row">
+                    <label for="import-date">Date of Import:</label>
+                    <input type="date" id="import-date">
                 </div>
 
                 <!-- Blankets/Underpacking Fields -->
@@ -248,11 +252,6 @@
                         <label for="pieces-sq-mtr">Sq. Mtr (Calculated):</label>
                         <input type="number" id="pieces-sq-mtr" step="0.01" readonly>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <label for="import-date">Date of Import:</label>
-                    <input type="date" id="import-date">
                 </div>
 
                 <div class="form-row">

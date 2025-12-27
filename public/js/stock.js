@@ -511,7 +511,7 @@ if (document.getElementById('stock-in-form')) {
         let formData = {
             productType: productType,
             productName: document.getElementById('product-name').value,
-            imported: document.getElementById('imported-status').value === 'true'
+            imported: document.getElementById('imported').value === 'true'
         };
         
         // Handle different product types
@@ -707,6 +707,9 @@ if (document.getElementById('stock-in-form')) {
             stockTypeSelect.value = 'roll';
         }
         
+        // Initialize import date visibility
+        toggleImportDate();
+        
         // Call toggleStockType to show correct fields
         toggleStockType();
     }
@@ -827,4 +830,18 @@ if (document.getElementById('stock-out-form')) {
     });
 
     document.addEventListener('DOMContentLoaded', loadProductsForStock);
+}
+
+// Toggle import date field based on imported selection
+function toggleImportDate() {
+    const imported = document.getElementById('imported').value;
+    const importDateRow = document.getElementById('import-date-row');
+    
+    if (imported === 'true') {
+        importDateRow.style.display = 'flex';
+    } else {
+        importDateRow.style.display = 'none';
+        // Clear the date when hiding
+        document.getElementById('import-date').value = '';
+    }
 }
