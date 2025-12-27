@@ -127,7 +127,7 @@ function displayProducts() {
         } else if (product.category === 'chemicals') {
             const productFormat = product.dimensions?.productFormat || 'N/A';
             const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
-            rollNumberInfo = `${productFormat} (${chemicalUnit})`;
+            rollNumberInfo = `${productFormat} ${chemicalUnit} container format`;
         } else {
             rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
         }
