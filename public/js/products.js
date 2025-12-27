@@ -85,10 +85,10 @@ function displayProducts() {
                 }
                 stockQuantityUnit = 'containers';
 
-                // Stock size shows the container size with unit and format label
+                // Stock size shows the individual container size with unit and format label
                 const formattedProductFormat = productFormatRaw ?? 'N/A';
                 stockSize = `${formattedProductFormat} ${chemicalUnit} format`;
-                stockSizeUnit = chemicalUnit;
+                stockSizeUnit = ''; // No unit needed since it's in the format text
             } else if (product.category === 'rules') {
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'coils';
