@@ -266,21 +266,40 @@ def add_stock_detailed():
                     ]
                 })
             elif stock_type == 'pieces':
-                existing_product = db.products.find_one({
-                    'name': data['productName'],
-                    'category': product_type,
-                    'dimensions.stockType': 'pieces'
-                })
+                if product_type == 'matrix':
+                    # For matrix products, check name, category, and size dimensions
+                    existing_product = db.products.find_one({
+                        'name': data['productName'],
+                        'category': product_type,
+                        'dimensions.matrixSizeWidth': data.get('matrixSizeWidth'),
+                        'dimensions.matrixSizeHeight': data.get('matrixSizeHeight')
+                    })
+                else:
+                    # For other pieces products (litho perf, rules)
+                    existing_product = db.products.find_one({
+                        'name': data['productName'],
+                        'category': product_type,
+                        'dimensions.stockType': 'pieces'
+                    })
             else:
                 existing_product = db.products.find_one({
                     'name': data['productName'],
                     'category': product_type
                 })
         else:
-            existing_product = db.products.find_one({
-                'name': data['productName'],
-                'category': product_type
-            })
+            if product_type == 'matrix':
+                # For matrix products without stock type, check name, category, and size dimensions
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type,
+                    'dimensions.matrixSizeWidth': data.get('matrixSizeWidth'),
+                    'dimensions.matrixSizeHeight': data.get('matrixSizeHeight')
+                })
+            else:
+                existing_product = db.products.find_one({
+                    'name': data['productName'],
+                    'category': product_type
+                })
 
         # Duplicate roll detection only for blanket/underpacking rolls
         if existing_product and product_type in blanket_types and stock_type == 'roll':
