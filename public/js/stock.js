@@ -614,9 +614,19 @@ if (document.getElementById('stock-in-form')) {
             console.log('Response status:', response.status);
             
             if (response.ok) {
+                // Preserve the selected product type before resetting
+                const selectedProductType = document.getElementById('product-type').value;
+                
                 document.getElementById('stock-in-form').reset();
                 document.getElementById('sq-mtr').value = '';
                 document.getElementById('pieces-sq-mtr').value = '';
+                
+                // Restore the selected product type
+                document.getElementById('product-type').value = selectedProductType;
+                
+                // Trigger change event to show correct fields
+                document.getElementById('product-type').dispatchEvent(new Event('change'));
+                
                 alert('Stock added successfully');
                 // Auto-refresh products display
                 refreshProductsDisplay();
@@ -762,8 +772,18 @@ async function handleDuplicateRoll(errorResponse, formData) {
     if (isDuplicate) {
         // User confirmed it's a duplicate - discard the entry
         alert('Duplicate entry discarded');
+        
+        // Preserve the selected product type before resetting
+        const selectedProductType = document.getElementById('product-type').value;
+        
         document.getElementById('stock-in-form').reset();
         document.getElementById('sq-mtr').value = '';
+        
+        // Restore the selected product type
+        document.getElementById('product-type').value = selectedProductType;
+        
+        // Trigger change event to show correct fields
+        document.getElementById('product-type').dispatchEvent(new Event('change'));
     } else {
         // User says it's not a duplicate - ask for import date
         const importDate = prompt('Please enter import date (YYYY-MM-DD) to differentiate this entry:');
@@ -800,8 +820,19 @@ async function handleDuplicateRoll(errorResponse, formData) {
             
             if (response.ok) {
                 alert(`Stock added successfully as: ${result.uniqueName}`);
+                
+                // Preserve the selected product type before resetting
+                const selectedProductType = document.getElementById('product-type').value;
+                
                 document.getElementById('stock-in-form').reset();
                 document.getElementById('sq-mtr').value = '';
+                
+                // Restore the selected product type
+                document.getElementById('product-type').value = selectedProductType;
+                
+                // Trigger change event to show correct fields
+                document.getElementById('product-type').dispatchEvent(new Event('change'));
+                
                 // Reload products to show the new entry
                 loadProductsForStock();
             } else {

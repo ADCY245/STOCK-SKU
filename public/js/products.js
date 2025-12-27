@@ -108,7 +108,10 @@ function displayProducts() {
         } else if (product.category === 'matrix') {
             const width = product.dimensions?.matrixSizeWidth || 'N/A';
             const height = product.dimensions?.matrixSizeHeight || 'N/A';
-            rollNumberInfo = `${width} x ${height}`;
+            // Format to preserve decimal places
+            const formattedWidth = width !== 'N/A' ? parseFloat(width).toFixed(1) : width;
+            const formattedHeight = height !== 'N/A' ? parseFloat(height).toFixed(1) : height;
+            rollNumberInfo = `${formattedWidth} x ${formattedHeight}`;
         } else {
             rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
         }
@@ -118,13 +121,16 @@ function displayProducts() {
         if (product.category === 'matrix') {
             const width = product.dimensions?.matrixSizeWidth || 'N/A';
             const height = product.dimensions?.matrixSizeHeight || 'N/A';
+            // Format to preserve decimal places
+            const formattedWidth = width !== 'N/A' ? parseFloat(width).toFixed(1) : width;
+            const formattedHeight = height !== 'N/A' ? parseFloat(height).toFixed(1) : height;
             const thickness = product.dimensions?.thickness;
             if (thickness) {
                 const thicknessUnit = product.dimensions.thicknessUnit === 'micron' ? 
                     thickness + 'μ' : thickness + 'mm';
-                displayName += ` (${width} x ${height}, ${thicknessUnit})`;
+                displayName += ` (${formattedWidth} x ${formattedHeight}, ${thicknessUnit})`;
             } else {
-                displayName += ` (${width} x ${height})`;
+                displayName += ` (${formattedWidth} x ${formattedHeight})`;
             }
         } else if (product.dimensions?.thickness) {
             const thickness = product.dimensions.thicknessUnit === 'micron' ? 
