@@ -99,8 +99,15 @@ function displayProducts() {
             }
         }
         
-        // Get roll number from dimensions or detailed stock
-        let rollNumber = product.dimensions?.rollNumber || 'N/A';
+        // Get roll number or product-specific info
+        let rollNumberInfo;
+        if (product.category === 'litho perf') {
+            const pieceType = product.dimensions?.lithoPieceType || 'N/A';
+            const perforationType = product.dimensions?.perforationType || 'N/A';
+            rollNumberInfo = `${pieceType} / ${perforationType}`;
+        } else {
+            rollNumberInfo = product.dimensions?.rollNumber || 'N/A';
+        }
         
         // Create differentiated product name for display (with thickness in brackets)
         let displayName = product.name;
@@ -123,7 +130,7 @@ function displayProducts() {
             <td>${product.category}</td>
             <td>${stockQuantity} <span style="color: #666; font-size: 0.9em;">[${stockQuantityUnit}]</span></td>
             <td>${stockSize} <span style="color: #666; font-size: 0.9em;">[${stockSizeUnit}]</span></td>
-            <td>${rollNumber}</td>
+            <td>${rollNumberInfo}</td>
             <td>${lastUpdated}</td>
             <td><span class="status ${statusClass}">${status}</span></td>
         `;
