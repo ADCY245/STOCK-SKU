@@ -309,6 +309,9 @@ function calculateSqMtr() {
     // Calculate square meters
     const sqMtr = lengthInMtr * widthInMtr;
     document.getElementById('sq-mtr').value = sqMtr.toFixed(2);
+
+    // Keep pieces calculation in sync when switching units/values
+    calculatePiecesSqMtr();
 }
 
 // Calculate chemical containers
@@ -348,32 +351,39 @@ function calculateChemicalContainers() {
         }
     }
 }
-
-// Calculate square meters for pieces
 function calculatePiecesSqMtr() {
+    const piecesSqMtrInput = document.getElementById('pieces-sq-mtr');
+    if (!piecesSqMtrInput) return;
+
     const productType = document.getElementById('product-type').value;
+    const stockType = document.getElementById('stock-type').value;
     const numberOfPieces = parseInt(document.getElementById('number-of-pieces').value) || 0;
-    
-    if (productType === 'blankets' && numberOfPieces > 0) {
-        const width = parseFloat(document.getElementById('width').value) || 0;
-        const length = parseFloat(document.getElementById('length').value) || 0;
-        const widthUnit = document.getElementById('width-unit').value;
-        const lengthUnit = document.getElementById('length-unit').value;
-        
-        // Convert to meters
-        const widthInMtr = widthUnit === 'mm' ? width / 1000 : 
-                           widthUnit === 'inch' ? width * 0.0254 : width;
-        const lengthInMtr = lengthUnit === 'mm' ? length / 1000 : 
-                            lengthUnit === 'inch' ? length * 0.0254 : length;
-        
-        // Calculate sq.mtr per piece and total
-        const sqMtrPerPiece = widthInMtr * lengthInMtr;
-        const totalSqMtr = sqMtrPerPiece * numberOfPieces;
-        
-        document.getElementById('pieces-sq-mtr').value = totalSqMtr.toFixed(4);
-    } else {
-        document.getElementById('pieces-sq-mtr').value = '';
+    const widthRaw = parseFloat(document.getElementById('width').value);
+    const lengthRaw = parseFloat(document.getElementById('length').value);
+
+    const hasDimensions = Number.isFinite(widthRaw) && Number.isFinite(lengthRaw);
+    const shouldCalculate = productType === 'blankets' && stockType === 'pieces' && numberOfPieces > 0 && hasDimensions;
+
+    if (!shouldCalculate) {
+        piecesSqMtrInput.value = '';
+        delete piecesSqMtrInput.dataset.perPiece;
+        return;
     }
+
+    const widthUnit = document.getElementById('width-unit').value;
+    const lengthUnit = document.getElementById('length-unit').value;
+
+    // Convert to meters
+    const widthInMtr = widthUnit === 'mm' ? widthRaw / 1000 :
+                       widthUnit === 'inch' ? widthRaw * 0.0254 : widthRaw;
+    const lengthInMtr = lengthUnit === 'mm' ? lengthRaw / 1000 :
+                        lengthUnit === 'inch' ? lengthRaw * 0.0254 : lengthRaw;
+
+    const sqMtrPerPiece = widthInMtr * lengthInMtr;
+    const totalSqMtr = sqMtrPerPiece * numberOfPieces;
+
+    piecesSqMtrInput.value = totalSqMtr.toFixed(4);
+    piecesSqMtrInput.dataset.perPiece = sqMtrPerPiece.toFixed(4);
 }
 
 // Toggle between roll and pieces fields
@@ -640,19 +650,32 @@ if (document.getElementById('stock-in-form')) {
         } else {
             // Blankets/Underpacking/Other products
             const stockType = document.getElementById('stock-type').value;
+            const rawLength = parseFloat(document.getElementById('length').value);
+            const rawWidth = parseFloat(document.getElementById('width').value);
+            const lengthUnitValue = document.getElementById('length-unit').value || null;
+            const widthUnitValue = document.getElementById('width-unit').value || null;
+            const rollSqM = parseFloat(document.getElementById('sq-mtr').value);
+            const piecesSqMtrInput = document.getElementById('pieces-sq-mtr');
+            const piecesSqMtrTotal = piecesSqMtrInput && piecesSqMtrInput.value ? parseFloat(piecesSqMtrInput.value) : null;
+            const piecesSqMtrPerPiece = piecesSqMtrInput && piecesSqMtrInput.dataset.perPiece ? parseFloat(piecesSqMtrInput.dataset.perPiece) : null;
+            const numberOfPieces = stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) || null : null;
+
             formData = {
                 ...formData,
                 stockType: stockType,
-                length: stockType === 'roll' ? parseFloat(document.getElementById('length').value) : null,
-                width: stockType === 'roll' ? parseFloat(document.getElementById('width').value) : null,
+                length: Number.isFinite(rawLength) ? rawLength : null,
+                width: Number.isFinite(rawWidth) ? rawWidth : null,
                 thickness: parseFloat(document.getElementById('thickness').value),
-                lengthUnit: stockType === 'roll' ? document.getElementById('length-unit').value : null,
-                widthUnit: stockType === 'roll' ? document.getElementById('width-unit').value : null,
+                lengthUnit: lengthUnitValue,
+                widthUnit: widthUnitValue,
                 thicknessUnit: document.getElementById('thickness-unit').value,
                 rollNumber: document.getElementById('roll-number').value,
-                numberOfPieces: stockType === 'pieces' ? parseInt(document.getElementById('number-of-pieces').value) : null,
-                sqMtr: stockType === 'roll' ? parseFloat(document.getElementById('sq-mtr').value) : 
-                       stockType === 'pieces' ? parseFloat(document.getElementById('pieces-sq-mtr').value) : null,
+                numberOfPieces: numberOfPieces,
+                sqMtr: stockType === 'roll'
+                    ? (Number.isFinite(rollSqM) ? rollSqM : null)
+                    : (stockType === 'pieces' && Number.isFinite(piecesSqMtrTotal) ? piecesSqMtrTotal : null),
+                sqMtrPerPiece: stockType === 'pieces' && Number.isFinite(piecesSqMtrPerPiece) ? piecesSqMtrPerPiece : null,
+                totalSqMtr: stockType === 'pieces' && Number.isFinite(piecesSqMtrTotal) ? piecesSqMtrTotal : null,
                 importDate: document.getElementById('import-date').value || null,
                 takenDate: document.getElementById('taken-date').value || null
             };

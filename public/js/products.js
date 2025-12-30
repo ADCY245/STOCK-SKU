@@ -80,6 +80,52 @@ function buildExcelCell(value, options = {}) {
     return `<td style="border: 1px solid #ccc; padding: 4px;">${escapeForExcel(safeValue)}</td>`;
 }
 
+function convertToMeters(value, unit = 'mm') {
+    if (value === null || value === undefined || value === '') return null;
+    const numeric = typeof value === 'number' ? value : parseFloat(value);
+    if (Number.isNaN(numeric)) return null;
+    if (unit === 'mm') return numeric / 1000;
+    if (unit === 'inch') return numeric * 0.0254;
+    return numeric;
+}
+
+function buildDimensionSummary(product) {
+    const dims = product?.dimensions || {};
+    if (dims.length == null || dims.width == null) return null;
+    const lengthUnit = dims.lengthUnit || 'mm';
+    const widthUnit = dims.widthUnit || 'mm';
+    const alongLabel = getLengthWidthLabel('length', product?.category);
+    const aroundLabel = getLengthWidthLabel('width', product?.category);
+    return `${alongLabel}: ${dims.length} ${lengthUnit}, ${aroundLabel}: ${dims.width} ${widthUnit}`;
+}
+
+function getProductFormatLabel(product) {
+    const category = (product?.category || '').toLowerCase();
+    const dims = product?.dimensions || {};
+    if (category === 'blankets' || category === 'underpacking') {
+        const stockType = dims.stockType || (dims.numberOfPieces ? 'pieces' : 'roll');
+        return stockType === 'pieces' ? 'Cut Pieces' : 'Roll';
+    }
+    if (category === 'chemicals') {
+        const format = dims.productFormat;
+        const unit = dims.chemicalUnit;
+        if (format && unit) return `${format} ${unit}`;
+        if (format) return `${format}`;
+        return unit || 'Chemical';
+    }
+    if (category === 'rules') {
+        if (dims.rulePackedAs === 'coil') return 'Coil';
+        if (dims.rulePackedAs === 'packets') return 'Packets';
+        return dims.stockUnit || 'Rules';
+    }
+    if (category === 'matrix') return 'Packets';
+    if (category === 'litho perf') return dims.lithoPieceType || 'Pieces';
+    if (dims.stockType) {
+        return formatDetailLabel(dims.stockType);
+    }
+    return '';
+}
+
 function getExcelColumnLabel(index) {
     let label = '';
     let current = index;
