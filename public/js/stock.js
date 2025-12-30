@@ -765,6 +765,30 @@ if (document.getElementById('stock-in-form')) {
         }
     }
     
+    function resetRuleContainerFields() {
+        const lengthInput = document.getElementById('rule-container-length');
+        const widthInput = document.getElementById('rule-container-width');
+        const typeSelect = document.getElementById('rule-container-type');
+        const formatInput = document.getElementById('rule-format');
+        const packedSelect = document.getElementById('rule-packed-as');
+        const stockInput = document.getElementById('rule-stock');
+        const unitDisplay = document.getElementById('rule-stock-unit');
+
+        if (lengthInput) lengthInput.value = '';
+        if (widthInput) widthInput.value = '';
+        if (typeSelect) typeSelect.selectedIndex = 0;
+        if (formatInput) formatInput.value = '';
+        if (stockInput) stockInput.value = '';
+
+        if (packedSelect) {
+            packedSelect.value = 'packets';
+        }
+
+        if (unitDisplay) {
+            unitDisplay.textContent = packedSelect && packedSelect.value === 'packets' ? 'pkts' : 'coils';
+        }
+    }
+    
     // Initialize form with default values
     function initializeFormDefaults() {
         // Set default stock type to roll
