@@ -71,6 +71,88 @@ function escapeForExcel(value) {
         .replace(/>/g, '&gt;');
 }
 
+function buildExcelCell(value, options = {}) {
+    const { isFormula = false } = options;
+    const safeValue = value ?? '';
+    if (isFormula && typeof safeValue === 'string' && safeValue.startsWith('=')) {
+        return `<td style="border: 1px solid #ccc; padding: 4px;">${safeValue}</td>`;
+    }
+    return `<td style="border: 1px solid #ccc; padding: 4px;">${escapeForExcel(safeValue)}</td>`;
+}
+
+function getExcelColumnLabel(index) {
+    let label = '';
+    let current = index;
+    while (current > 0) {
+        const remainder = (current - 1) % 26;
+        label = String.fromCharCode(65 + remainder) + label;
+        current = Math.floor((current - 1) / 26);
+    }
+    return label;
+}
+
+function getColumnRefExpression(columnInfo) {
+    if (!columnInfo || typeof columnInfo.index !== 'number') return null;
+    return `INDIRECT(ADDRESS(ROW(),${columnInfo.index}))`;
+}
+
+function buildMeterConversionExpression(valueRef, unitRef) {
+    if (!valueRef) return null;
+    if (!unitRef) return valueRef;
+    return `IF(${unitRef}="",${valueRef},IF(LOWER(${unitRef})="mm",${valueRef}/1000,IF(LOWER(${unitRef})="inch",${valueRef}*0.0254,${valueRef})))`;
+}
+
+function buildStockQuantityFormula(product, dimensionColumns) {
+    const lengthRef = getColumnRefExpression(dimensionColumns.length);
+    const widthRef = getColumnRefExpression(dimensionColumns.width);
+    const lengthUnitRef = getColumnRefExpression(dimensionColumns.lengthUnit);
+    const widthUnitRef = getColumnRefExpression(dimensionColumns.widthUnit);
+
+    if (product.category === 'underpacking' && widthRef) {
+        const convertedWidth = buildMeterConversionExpression(widthRef, widthUnitRef);
+        if (convertedWidth) {
+            return `=IF(${widthRef}="","",ROUND(${convertedWidth},2))`;
+        }
+    }
+
+    const stockType = product.dimensions?.stockType;
+    const isBlanketRoll = product.category === 'blankets' && stockType === 'roll';
+
+    if (isBlanketRoll && lengthRef) {
+        const convertedLength = buildMeterConversionExpression(lengthRef, lengthUnitRef);
+        if (convertedLength) {
+            return `=IF(${lengthRef}="","",ROUND(${convertedLength},2))`;
+        }
+    }
+
+    if (product.category === 'blankets' && product.dimensions?.numberOfPieces) {
+        const piecesRef = getColumnRefExpression(dimensionColumns.numberOfPieces);
+        if (piecesRef) {
+            return `=IF(${piecesRef}="","",${piecesRef})`;
+        }
+    }
+
+    return null;
+}
+
+function buildStockSizeFormula(product, dimensionColumns) {
+    const lengthRef = getColumnRefExpression(dimensionColumns.length);
+    const widthRef = getColumnRefExpression(dimensionColumns.width);
+    const lengthUnitRef = getColumnRefExpression(dimensionColumns.lengthUnit);
+    const widthUnitRef = getColumnRefExpression(dimensionColumns.widthUnit);
+
+    if (!lengthRef || !widthRef) return null;
+
+    const applicableCategories = ['blankets', 'underpacking'];
+    if (!applicableCategories.includes(product.category)) return null;
+
+    const convertedLength = buildMeterConversionExpression(lengthRef, lengthUnitRef);
+    const convertedWidth = buildMeterConversionExpression(widthRef, widthUnitRef);
+    if (!convertedLength || !convertedWidth) return null;
+
+    return `=IF(OR(${lengthRef}="",${widthRef}=""),"",ROUND((${convertedLength})*(${convertedWidth}),4))`;
+}
+
 function displayProducts() {
     const tbody = document.getElementById('products-tbody');
     const categoryFilter = document.getElementById('category-filter').value;
@@ -466,7 +548,13 @@ function exportToExcel() {
     }
 
     const categoryFilter = document.getElementById('category-filter').value;
-    const baseHeaders = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Last Updated', 'Status'];
+    const baseColumns = [
+        { key: 'productName', label: 'Product Name' },
+        { key: 'category', label: 'Category' },
+        { key: 'stockQuantity', label: 'Stock Quantity' },
+        { key: 'stockSize', label: 'Stock Size' },
+        { key: 'status', label: 'Status' }
+    ];
     const categoryDataMap = {};
     let exportScopeLabel = 'all';
 
@@ -507,11 +595,22 @@ function exportToExcel() {
             });
         });
         const categoryDimensionKeys = Array.from(dimensionKeys);
-        const headerCells = [
-            ...baseHeaders,
-            ...categoryDimensionKeys.map(key => getLengthWidthLabel(key, category))
-        ];
-        const colSpan = headerCells.length || baseHeaders.length;
+        const dimensionColumns = categoryDimensionKeys.map(key => ({
+            key,
+            label: getLengthWidthLabel(key, category)
+        }));
+        const allColumns = [...baseColumns, ...dimensionColumns].map((col, idx) => ({
+            ...col,
+            index: idx + 1
+        }));
+        const baseColumnCount = baseColumns.length;
+        const dimensionColumnsWithIndex = allColumns.slice(baseColumnCount);
+        const dimensionColumnInfo = {};
+        dimensionColumnsWithIndex.forEach(col => {
+            dimensionColumnInfo[col.key] = col;
+        });
+        const headerCells = allColumns.map(col => col.label);
+        const colSpan = headerCells.length || baseColumnCount;
 
         const productRows = products.map(product => {
             const stockLevel = product.stock || 0;
@@ -519,8 +618,6 @@ function exportToExcel() {
                                   product.dimensions && 
                                   product.dimensions.numberOfPieces;
             const status = getStockStatus(stockLevel, isBlanketPieces);
-            const lastUpdated = product.lastUpdated ? 
-                new Date(product.lastUpdated).toLocaleDateString() : 'Never';
             
             // Determine stock quantity and size based on type
             let stockQuantity, stockSize, stockQuantityUnit, stockSizeUnit;
@@ -596,6 +693,8 @@ function exportToExcel() {
 
             const quantityDisplay = stockQuantityUnit ? `${stockQuantity} [${stockQuantityUnit}]` : `${stockQuantity}`;
             const sizeDisplay = stockSizeUnit ? `${stockSize} [${stockSizeUnit}]` : `${stockSize}`;
+            const stockQuantityFormula = buildStockQuantityFormula(product, dimensionColumnInfo);
+            const stockSizeFormula = buildStockSizeFormula(product, dimensionColumnInfo);
             
             // Create differentiated product name
             let displayName = product.name;
@@ -622,20 +721,19 @@ function exportToExcel() {
             }
 
             const baseCells = [
-                escapeForExcel(displayName),
-                escapeForExcel(product.category),
-                escapeForExcel(quantityDisplay),
-                escapeForExcel(sizeDisplay),
-                escapeForExcel(lastUpdated),
-                escapeForExcel(status)
+                buildExcelCell(displayName),
+                buildExcelCell(product.category),
+                buildExcelCell(stockQuantityFormula ?? quantityDisplay, { isFormula: Boolean(stockQuantityFormula) }),
+                buildExcelCell(stockSizeFormula ?? sizeDisplay, { isFormula: Boolean(stockSizeFormula) }),
+                buildExcelCell(status)
             ];
 
-            const dimensionCells = categoryDimensionKeys.map(key => 
-                escapeForExcel(formatDetailValue(product.dimensions?.[key]))
+            const dimensionCells = dimensionColumnsWithIndex.map(col => 
+                buildExcelCell(formatDetailValue(product.dimensions?.[col.key]))
             );
 
             const rowCells = [...baseCells, ...dimensionCells];
-            return `<tr>${rowCells.map(cell => `<td style="border: 1px solid #ccc; padding: 4px;">${cell}</td>`).join('')}</tr>`;
+            return `<tr>${rowCells.join('')}</tr>`;
         }).join('');
 
         return `
