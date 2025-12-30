@@ -300,11 +300,14 @@ function closeProductInfo() {
     }
 }
 
-// Close modal when clicking outside the modal content
+// Close modal when clicking outside of modal content or on close button
 document.addEventListener('click', (e) => {
     const modal = document.querySelector('.product-info-modal');
-    if (modal && e.target === modal) {
-        modal.remove();
+    if (modal) {
+        // Check if click is on the overlay (outside modal content) or on close button
+        if (e.target === modal || e.target.classList.contains('close-btn')) {
+            modal.remove();
+        }
     }
 });
 
