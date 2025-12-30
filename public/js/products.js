@@ -465,48 +465,9 @@ function exportToExcel() {
         }
     });
 
-    // Create headers - use consistent column names across all categories
+    // Create headers
     const baseHeaders = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Last Updated', 'Status'];
-    
-    // Define consistent dimension headers for all categories
-    const consistentDimensionHeaders = [
-        'Stock Type',
-        'Length',
-        'Length Unit',
-        'Width',
-        'Width Unit',
-        'Thickness',
-        'Thickness Unit',
-        'Roll Number',
-        'Number Of Pieces',
-        'Sq Mtr Per Piece',
-        'Total Sq Mtr',
-        'Litho Piece Type',
-        'Perforation Type',
-        'Product TPI',
-        'Matrix Format',
-        'Matrix Size Width',
-        'Matrix Size Height',
-        'Stock Unit',
-        'Rule Format',
-        'Rule Packed As',
-        'Rule Container Length',
-        'Rule Container Width',
-        'Rule Container Type',
-        'Product Format',
-        'Chemical Unit',
-        'Import Date',
-        'Taken Date'
-    ];
-    
-    // Only include headers that actually exist in the data
-    const dimensionHeaders = consistentDimensionHeaders.filter(header => {
-        const normalizedHeader = header.toLowerCase().replace(/ /g, '');
-        return Array.from(allDimensionKeys).some(key => 
-            formatDetailLabel(key).toLowerCase().replace(/ /g, '') === normalizedHeader
-        );
-    });
-    
+    const dimensionHeaders = Array.from(allDimensionKeys).sort().map(key => formatDetailLabel(key));
     const headers = [...baseHeaders, ...dimensionHeaders];
 
     // Create CSV content with category grouping
@@ -642,9 +603,9 @@ function exportToExcel() {
 
             // Add dimension values in the same order as headers
             const dimensionValues = dimensionHeaders.map(header => {
-                const normalizedHeader = header.toLowerCase().replace(/ /g, '');
+                const key = header.toLowerCase().replace(/ /g, '');
                 const actualKey = Array.from(allDimensionKeys).find(k => 
-                    formatDetailLabel(k).toLowerCase().replace(/ /g, '') === normalizedHeader
+                    formatDetailLabel(k).toLowerCase().replace(/ /g, '') === key
                 );
                 const value = actualKey ? product.dimensions?.[actualKey] : '';
                 return `"${formatDetailValue(value)}"`;
