@@ -448,11 +448,41 @@ function exportToExcel() {
         return;
     }
 
-    // Create CSV content
-    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Product Details', 'Roll Number', 'Last Updated', 'Status'];
-    const csvContent = [
-        headers.join(','),
-        ...dataToExport.map(product => {
+    // Group products by category
+    const productsByCategory = {};
+    dataToExport.forEach(product => {
+        if (!productsByCategory[product.category]) {
+            productsByCategory[product.category] = [];
+        }
+        productsByCategory[product.category].push(product);
+    });
+
+    // Collect all possible dimension keys across all products
+    const allDimensionKeys = new Set();
+    dataToExport.forEach(product => {
+        if (product.dimensions) {
+            Object.keys(product.dimensions).forEach(key => allDimensionKeys.add(key));
+        }
+    });
+
+    // Create headers
+    const baseHeaders = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Last Updated', 'Status'];
+    const dimensionHeaders = Array.from(allDimensionKeys).sort().map(key => formatDetailLabel(key));
+    const headers = [...baseHeaders, ...dimensionHeaders];
+
+    // Create CSV content with category grouping
+    const csvRows = [headers.join(',')];
+    
+    Object.keys(productsByCategory).sort().forEach(category => {
+        const products = productsByCategory[category];
+        
+        // Add category header with spacing
+        csvRows.push(''); // Empty row before category
+        csvRows.push(`"${category.toUpperCase()} - ${products.length} PRODUCTS"`);
+        csvRows.push(''); // Empty row after category header
+        
+        // Add products for this category
+        products.forEach(product => {
             const stockLevel = product.stock || 0;
             const isBlanketPieces = product.category === 'blankets' && 
                                   product.dimensions && 
@@ -464,13 +494,12 @@ function exportToExcel() {
             // Determine stock quantity and size based on type
             let stockQuantity, stockSize, stockQuantityUnit, stockSizeUnit;
             if (isBlanketPieces) {
-                stockQuantity = stockLevel.toFixed(0); // Number of pieces
+                stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'pcs';
                 const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
                 stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
                 stockSizeUnit = '';
             } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
-                // For rolls (check if has length and width dimensions but not blanket pieces)
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                     (product.dimensions?.length || 0) / 1000 : 
                     (product.dimensions?.length || 0);
@@ -479,26 +508,23 @@ function exportToExcel() {
                     (product.dimensions?.width || 0);
                 const calculatedSqMtr = lengthInMtr * widthInMtr;
                 
-                // For underpacking, stock quantity is width; for others, it's length
                 if (product.category === 'underpacking') {
-                    stockQuantity = widthInMtr.toFixed(2); // Width in meters for underpacking
+                    stockQuantity = widthInMtr.toFixed(2);
                     stockQuantityUnit = 'mtr';
                     stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
                     stockSizeUnit = '';
                 } else if (product.category === 'blankets') {
-                    stockQuantity = lengthInMtr.toFixed(2); // Length in meters for blankets
+                    stockQuantity = lengthInMtr.toFixed(2);
                     stockQuantityUnit = 'mtr';
                     stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
                     stockSizeUnit = '';
                 } else {
-                    // Other products with dimensions but no sq.mtr display
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = 'units';
                     stockSize = stockLevel.toFixed(2);
                     stockSizeUnit = 'units';
                 }
             } else {
-                // Default case for other products - determine units based on category
                 if (product.category === 'chemicals') {
                     const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
                     stockQuantity = stockLevel.toFixed(2);
@@ -541,36 +567,58 @@ function exportToExcel() {
             const quantityDisplay = stockQuantityUnit ? `${stockQuantity} [${stockQuantityUnit}]` : `${stockQuantity}`;
             const sizeDisplay = stockSizeUnit ? `${stockSize} [${stockSizeUnit}]` : `${stockSize}`;
             
-            // Get roll number from dimensions
-            let rollNumber = product.dimensions?.rollNumber || 'N/A';
-            const productDetails = buildProductDetailsString(product);
-            
-            // Create differentiated product name for display (without roll number brackets)
+            // Create differentiated product name
             let displayName = product.name;
-            if (product.dimensions?.stockType === 'roll' && product.dimensions?.length && product.dimensions?.width) {
-                const length = product.dimensions.lengthUnit === 'mm' ? 
-                    (product.dimensions.length / 1000).toFixed(2) + 'm' : 
-                    product.dimensions.length + 'm';
-                const width = product.dimensions.widthUnit === 'mm' ? 
-                    (product.dimensions.width / 1000).toFixed(2) + 'm' : 
-                    product.dimensions.width + 'm';
-                displayName += ` (${length} x ${width})`;
+            if (product.category === 'matrix') {
+                const width = product.dimensions?.matrixSizeWidth || 'N/A';
+                const height = product.dimensions?.matrixSizeHeight || 'N/A';
+                const formattedWidth = width !== 'N/A' ? parseFloat(width).toFixed(1) : width;
+                const formattedHeight = height !== 'N/A' ? parseFloat(height).toFixed(1) : height;
+                const thickness = product.dimensions?.thickness;
+                if (thickness) {
+                    const thicknessUnit = product.dimensions.thicknessUnit === 'micron' ? 
+                        thickness + 'μ' : thickness + 'mm';
+                    displayName += ` (${formattedWidth} x ${formattedHeight}, ${thicknessUnit})`;
+                } else {
+                    displayName += ` (${formattedWidth} x ${formattedHeight})`;
+                }
+            } else if (product.dimensions?.thickness) {
+                const thickness = product.dimensions.thicknessUnit === 'micron' ? 
+                    product.dimensions.thickness + 'μ' : 
+                    product.dimensions.thickness + 'mm';
+                displayName += ` (${thickness})`;
             } else if (isBlanketPieces) {
                 displayName += ' (Pieces)';
             }
-            
-            return [
+
+            // Create row with dimension values
+            const baseValues = [
                 `"${displayName}"`,
                 `"${product.category}"`,
                 `"${quantityDisplay}"`,
                 `"${sizeDisplay}"`,
-                `"${productDetails}"`,
-                `"${rollNumber}"`,
                 `"${lastUpdated}"`,
                 `"${status}"`
-            ].join(',');
-        })
-    ].join('\n');
+            ];
+
+            // Add dimension values in the same order as headers
+            const dimensionValues = dimensionHeaders.map(header => {
+                const key = header.toLowerCase().replace(/ /g, '');
+                const actualKey = Array.from(allDimensionKeys).find(k => 
+                    formatDetailLabel(k).toLowerCase().replace(/ /g, '') === key
+                );
+                const value = actualKey ? product.dimensions?.[actualKey] : '';
+                return `"${formatDetailValue(value)}"`;
+            });
+
+            csvRows.push([...baseValues, ...dimensionValues].join(','));
+        });
+        
+        // Add spacing after each category (except last)
+        csvRows.push('');
+    });
+
+    const csvContent = csvRows.join('\n');
 
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
