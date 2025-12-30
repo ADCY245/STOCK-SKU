@@ -186,6 +186,7 @@ function buildStockSizeFormula(product, dimensionColumns) {
     const widthRef = getColumnRefExpression(dimensionColumns.width);
     const lengthUnitRef = getColumnRefExpression(dimensionColumns.lengthUnit);
     const widthUnitRef = getColumnRefExpression(dimensionColumns.widthUnit);
+    const piecesRef = getColumnRefExpression(dimensionColumns.numberOfPieces);
 
     if (!lengthRef || !widthRef) return null;
 
@@ -196,7 +197,13 @@ function buildStockSizeFormula(product, dimensionColumns) {
     const convertedWidth = buildMeterConversionExpression(widthRef, widthUnitRef);
     if (!convertedLength || !convertedWidth) return null;
 
-    return `=IF(OR(${lengthRef}="",${widthRef}=""),"",ROUND((${convertedLength})*(${convertedWidth}),4))`;
+    const baseAreaExpression = `ROUND((${convertedLength})*(${convertedWidth}),4)`;
+
+    if (product.category === 'blankets' && product.dimensions?.numberOfPieces && piecesRef) {
+        return `=IF(OR(${lengthRef}="",${widthRef}="",${piecesRef}=""),"",TEXT(${baseAreaExpression},"0.0000") & " (x" & ${piecesRef} & ")")`;
+    }
+
+    return `=IF(OR(${lengthRef}="",${widthRef}=""),"",${baseAreaExpression})`;
 }
 
 function displayProducts() {
@@ -597,6 +604,7 @@ function exportToExcel() {
     const baseColumns = [
         { key: 'productName', label: 'Product Name' },
         { key: 'category', label: 'Category' },
+        { key: 'productFormat', label: 'Product Format' },
         { key: 'stockQuantity', label: 'Stock Quantity' },
         { key: 'stockSize', label: 'Stock Size' },
         { key: 'status', label: 'Status' }
@@ -769,6 +777,7 @@ function exportToExcel() {
             const baseCells = [
                 buildExcelCell(displayName),
                 buildExcelCell(product.category),
+                buildExcelCell(getProductFormatLabel(product)),
                 buildExcelCell(stockQuantityFormula ?? quantityDisplay, { isFormula: Boolean(stockQuantityFormula) }),
                 buildExcelCell(stockSizeFormula ?? sizeDisplay, { isFormula: Boolean(stockSizeFormula) }),
                 buildExcelCell(status)
