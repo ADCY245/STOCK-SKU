@@ -140,7 +140,9 @@ def add_stock_detailed():
                         'stockType': 'pieces',
                         'thickness': data.get('thickness'),
                         'thicknessUnit': data.get('thicknessUnit', 'mm'),
-                        'numberOfPieces': data.get('numberOfPieces')
+                        'numberOfPieces': data.get('numberOfPieces'),
+                        'sqMtrPerPiece': data.get('sqMtrPerPiece'),
+                        'totalSqMtr': data.get('totalSqMtr')
                     }
                     if data.get('length') and data.get('width'):
                         dimensions.update({
@@ -219,7 +221,9 @@ def add_stock_detailed():
                         'length': data.get('length'),
                         'width': data.get('width'),
                         'lengthUnit': data.get('lengthUnit', 'mm'),
-                        'widthUnit': data.get('widthUnit', 'mm')
+                        'widthUnit': data.get('widthUnit', 'mm'),
+                        'sqMtrPerPiece': data.get('sqMtrPerPiece'),
+                        'totalSqMtr': data.get('totalSqMtr')
                     }))
                     quantity = int(data.get('numberOfPieces', 0))
             elif product_type == 'litho perf':
@@ -289,6 +293,24 @@ def add_stock_detailed():
                         'dimensions.thickness': data.get('thickness'),
                         'dimensions.thicknessUnit': data.get('thicknessUnit', 'mm')
                     })
+                elif product_type in blanket_types:
+                    piece_query = {
+                        'name': data['productName'],
+                        'category': product_type,
+                        'dimensions.stockType': 'pieces'
+                    }
+
+                    def add_dimension_constraint(field_name, value):
+                        if value is not None:
+                            piece_query[f'dimensions.{field_name}'] = value
+
+                    add_dimension_constraint('length', data.get('length'))
+                    add_dimension_constraint('width', data.get('width'))
+                    add_dimension_constraint('lengthUnit', data.get('lengthUnit', 'mm'))
+                    add_dimension_constraint('widthUnit', data.get('widthUnit', 'mm'))
+                    add_dimension_constraint('thickness', data.get('thickness'))
+                    add_dimension_constraint('thicknessUnit', data.get('thicknessUnit', 'mm'))
+                    existing_product = db.products.find_one(piece_query)
                 else:
                     # For other pieces products (litho perf, rules)
                     existing_product = db.products.find_one({

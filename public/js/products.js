@@ -42,6 +42,50 @@ function formatDetailValue(value) {
     return String(value);
 }
 
+function formatDimensionWithUnit(value, unit = 'mm') {
+    if (value === null || value === undefined || value === '') return null;
+    const numeric = typeof value === 'number' ? value : parseFloat(value);
+    if (Number.isNaN(numeric)) return null;
+    const formattedValue = Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(2);
+    return `${formattedValue} ${unit}`;
+}
+
+function buildCutPieceDetails(product) {
+    const dims = product?.dimensions || {};
+    const acrossDisplay = formatDimensionWithUnit(dims.width, dims.widthUnit || 'mm');
+    const aroundDisplay = formatDimensionWithUnit(dims.length, dims.lengthUnit || 'mm');
+    if (!acrossDisplay || !aroundDisplay) return null;
+    return `${acrossDisplay} x ${aroundDisplay}`;
+}
+
+function resolvePerPieceSqM(product) {
+    const dims = product?.dimensions || {};
+    const directValue = Number(dims.sqMtrPerPiece);
+    if (Number.isFinite(directValue) && directValue > 0) return directValue;
+    const lengthInMeters = convertToMeters(dims.length, dims.lengthUnit || 'mm');
+    const widthInMeters = convertToMeters(dims.width, dims.widthUnit || 'mm');
+    if (lengthInMeters != null && widthInMeters != null) {
+        return lengthInMeters * widthInMeters;
+    }
+    return null;
+}
+
+function buildCutPieceStockSizeLabel(product, fallbackStockLevel) {
+    const perPieceSqM = resolvePerPieceSqM(product);
+    if (!Number.isFinite(perPieceSqM) || perPieceSqM <= 0) return null;
+
+    const dims = product?.dimensions || {};
+    const piecesFromDims = Number(dims.numberOfPieces);
+    const piecesFromStock = Number(fallbackStockLevel);
+    const quantity = Number.isFinite(piecesFromDims) && piecesFromDims > 0
+        ? Math.round(piecesFromDims)
+        : (Number.isFinite(piecesFromStock) && piecesFromStock > 0 ? Math.round(piecesFromStock) : null);
+    if (!quantity) return null;
+
+    const perPieceDisplay = perPieceSqM.toFixed(4);
+    return `${perPieceDisplay}(x${quantity})`;
+}
+
 function getLengthWidthLabel(key, category) {
     const isBlanketOrUnderpacking = category === 'blankets' || category === 'underpacking';
     if (!isBlanketOrUnderpacking) {
@@ -225,6 +269,7 @@ function displayProducts() {
         const isBlanketPieces = product.category === 'blankets' && 
                               product.dimensions && 
                               product.dimensions.numberOfPieces;
+        const cutPieceSizeLabel = isBlanketPieces ? buildCutPieceStockSizeLabel(product, stockLevel) : null;
         const status = getStockStatus(stockLevel, isBlanketPieces);
         const statusClass = getStatusClass(status);
         const lastUpdated = product.lastUpdated ? 
@@ -235,9 +280,8 @@ function displayProducts() {
         if (isBlanketPieces) {
             stockQuantity = stockLevel.toFixed(0); // Number of pieces
             stockQuantityUnit = 'pcs';
-            const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-            stockSize = `${sqMtrPerPiece.toFixed(4)}`;
-            stockSizeUnit = 'sq.mtr/pc';
+            stockSize = cutPieceSizeLabel || 'N/A';
+            stockSizeUnit = '';
         } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
             // For rolls (check if has length and width dimensions but not blanket pieces)
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
@@ -317,7 +361,9 @@ function displayProducts() {
         
         // Get product-specific details info
         let detailsInfo;
-        if (product.category === 'litho perf') {
+        if (isBlanketPieces) {
+            detailsInfo = buildCutPieceDetails(product) || 'N/A';
+        } else if (product.category === 'litho perf') {
             const pieceType = product.dimensions?.lithoPieceType || 'N/A';
             const perforationType = product.dimensions?.perforationType || 'N/A';
             detailsInfo = `${pieceType} / ${perforationType}`;
@@ -678,15 +724,11 @@ function exportToExcel() {
             if (isBlanketPieces) {
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'pcs';
-                stockSize = '';
+                stockSize = buildCutPieceStockSizeLabel(product, stockLevel) || '';
                 stockSizeUnit = '';
             } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
-                const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
-                    (product.dimensions?.length || 0) / 1000 : 
-                    (product.dimensions?.length || 0);
-                const widthInMtr = product.dimensions?.widthUnit === 'mm' ? 
-                    (product.dimensions?.width || 0) / 1000 : 
-                    (product.dimensions?.width || 0);
+                const lengthInMtr = convertToMeters(product.dimensions?.length, product.dimensions?.lengthUnit || 'mm') || 0;
+                const widthInMtr = convertToMeters(product.dimensions?.width, product.dimensions?.widthUnit || 'mm') || 0;
                 const calculatedSqMtr = lengthInMtr * widthInMtr;
                 
                 if (product.category === 'underpacking') {
