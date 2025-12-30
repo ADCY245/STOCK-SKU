@@ -402,66 +402,181 @@ def upload_excel():
         
         if not file.filename.endswith(('.xlsx', '.xls')):
             return jsonify({'error': 'Invalid file format. Please upload Excel file'}), 400
+
+        overwrite = request.form.get('overwrite', 'false').lower() == 'true'
         
         # Read Excel file
         df = pd.read_excel(file)
         
-        # Expected columns: productType, productName, length, width, thickness, rollNumber, importDate, takenDate
         required_columns = ['productType', 'productName', 'length', 'width', 'thickness', 'rollNumber', 'importDate']
-        optional_columns = ['takenDate']
-        
         for col in required_columns:
             if col not in df.columns:
                 return jsonify({'error': f'Missing required column: {col}'}), 400
         
-        # Process each row
         from db.database import db
         inserted_count = 0
+        updated_count = 0
+        skipped_duplicates = 0
+        conflicts = []
+
+        def normalize_value(value):
+            if value is None:
+                return None
+            if isinstance(value, float):
+                return round(value, 4)
+            if isinstance(value, datetime):
+                return value.isoformat()
+            return str(value).strip()
         
         for index, row in df.iterrows():
             try:
-                # Calculate sqMtr
-                length_mtr = row['length'] / 1000 if row['length'] > 100 else row['length']
-                width_mtr = row['width'] / 1000 if row['width'] > 100 else row['width']
-                sq_mtr = round(length_mtr * width_mtr, 2)
+                product_type = str(row['productType']).strip()
+                product_name = str(row['productName']).strip()
+                length = None if pd.isna(row['length']) else float(row['length'])
+                width = None if pd.isna(row['width']) else float(row['width'])
+                thickness = None if pd.isna(row['thickness']) else float(row['thickness'])
+                roll_number = None if pd.isna(row['rollNumber']) else str(row['rollNumber'])
+                import_date = None if pd.isna(row['importDate']) else pd.to_datetime(row['importDate']).to_pydatetime()
+                taken_date = None if pd.isna(row.get('takenDate')) else pd.to_datetime(row['takenDate']).to_pydatetime()
                 
-                # Find product by name and type
+                # Calculate sq.mtr (fallback to 0 if dimensions missing)
+                length_mtr = (length or 0) / 1000 if length and length > 100 else (length or 0)
+                width_mtr = (width or 0) / 1000 if width and width > 100 else (width or 0)
+                sq_mtr = round(length_mtr * width_mtr, 2) if length and width else 0
+                
                 product = db.products.find_one({
-                    'name': row['productName'],
-                    'category': row['productType']
+                    'name': product_name,
+                    'category': product_type
                 })
-                
+
+                incoming_signature = {
+                    'length': length,
+                    'width': width,
+                    'thickness': thickness,
+                    'rollNumber': roll_number,
+                    'importDate': import_date.isoformat() if import_date else None,
+                    'takenDate': taken_date.isoformat() if taken_date else None
+                }
+
                 if product:
-                    stock_data = {
-                        'productType': row['productType'],
-                        'productId': str(product['_id']),
-                        'productName': row['productName'],
-                        'length': row['length'],
-                        'width': row['width'],
-                        'thickness': row['thickness'],
-                        'rollNumber': str(row['rollNumber']),
-                        'importDate': pd.to_datetime(row['importDate']).to_pydatetime(),
-                        'takenDate': pd.to_datetime(row['takenDate']).to_pydatetime() if pd.notna(row.get('takenDate')) else None,
-                        'sqMtr': sq_mtr,
+                    existing_dims = product.get('dimensions', {})
+                    existing_signature = {
+                        'length': existing_dims.get('length'),
+                        'width': existing_dims.get('width'),
+                        'thickness': existing_dims.get('thickness'),
+                        'rollNumber': existing_dims.get('rollNumber'),
+                        'importDate': existing_dims.get('importDate'),
+                        'takenDate': existing_dims.get('takenDate')
+                    }
+
+                    differences = {}
+                    for key, incoming_value in incoming_signature.items():
+                        existing_value = existing_signature.get(key)
+                        if normalize_value(existing_value) != normalize_value(incoming_value):
+                            differences[key] = {
+                                'existing': normalize_value(existing_value),
+                                'incoming': normalize_value(incoming_value)
+                            }
+
+                    if not differences:
+                        skipped_duplicates += 1
+                        continue
+
+                    if differences and not overwrite:
+                        conflicts.append({
+                            'productName': product_name,
+                            'productType': product_type,
+                            'differences': differences
+                        })
+                        continue
+
+                    if differences and overwrite:
+                        updated_dims = existing_dims.copy()
+                        updated_dims.update({
+                            'length': length,
+                            'width': width,
+                            'lengthUnit': row.get('lengthUnit', existing_dims.get('lengthUnit', 'mm')),
+                            'widthUnit': row.get('widthUnit', existing_dims.get('widthUnit', 'mm')),
+                            'thickness': thickness,
+                            'thicknessUnit': row.get('thicknessUnit', existing_dims.get('thicknessUnit', 'mm')),
+                            'rollNumber': roll_number
+                        })
+                        if import_date:
+                            updated_dims['importDate'] = import_date.isoformat()
+                        if taken_date:
+                            updated_dims['takenDate'] = taken_date.isoformat()
+                        Product.update_dimensions(str(product['_id']), updated_dims)
+                        updated_count += 1
+                else:
+                    # Create new product entry
+                    dimensions = {
+                        'length': length,
+                        'width': width,
+                        'lengthUnit': row.get('lengthUnit', 'mm'),
+                        'widthUnit': row.get('widthUnit', 'mm'),
+                        'thickness': thickness,
+                        'thicknessUnit': row.get('thicknessUnit', 'mm'),
+                        'rollNumber': roll_number,
+                        'stockType': 'roll'
+                    }
+                    if import_date:
+                        dimensions['importDate'] = import_date.isoformat()
+                    if taken_date:
+                        dimensions['takenDate'] = taken_date.isoformat()
+                    
+                    product_payload = {
+                        'name': product_name,
+                        'category': product_type,
+                        'stock': 0,
+                        'imported': True,
+                        'dimensions': dimensions,
                         'createdAt': datetime.utcnow()
                     }
-                    
-                    db.detailed_stock.insert_one(stock_data)
-                    
-                    # Update main product stock
-                    new_stock = product.get('stock', 0) + sq_mtr
-                    db.products.update_one(
-                        {'_id': product['_id']},
-                        {'$set': {'stock': new_stock, 'lastUpdated': datetime.utcnow()}}
-                    )
-                    
+                    insert_result = db.products.insert_one(product_payload)
+                    product = db.products.find_one({'_id': insert_result.inserted_id})
                     inserted_count += 1
-                    
+
+                # Record stock movement
+                stock_data = {
+                    'productType': product_type,
+                    'productId': str(product['_id']),
+                    'productName': product_name,
+                    'length': length,
+                    'width': width,
+                    'thickness': thickness,
+                    'rollNumber': roll_number,
+                    'importDate': import_date,
+                    'takenDate': taken_date,
+                    'sqMtr': sq_mtr,
+                    'createdAt': datetime.utcnow()
+                }
+                db.detailed_stock.insert_one(stock_data)
+
+                new_stock = product.get('stock', 0) + sq_mtr
+                db.products.update_one(
+                    {'_id': product['_id']},
+                    {'$set': {'stock': new_stock, 'lastUpdated': datetime.utcnow()}}
+                )
+                
             except Exception as e:
                 print(f"Error processing row {index}: {e}")
                 continue
-        
-        return jsonify({'message': f'Successfully processed {inserted_count} records', 'count': inserted_count}), 200
+
+        if conflicts and not overwrite:
+            return jsonify({
+                'error': 'CONFLICTS_FOUND',
+                'message': f'{len(conflicts)} rows differ from existing data.',
+                'conflicts': conflicts,
+                'inserted': inserted_count,
+                'skipped': skipped_duplicates
+            }), 409
+
+        return jsonify({
+            'message': 'Excel import completed',
+            'inserted': inserted_count,
+            'updated': updated_count,
+            'skipped': skipped_duplicates
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

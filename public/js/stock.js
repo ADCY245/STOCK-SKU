@@ -462,6 +462,30 @@ function downloadTemplate() {
     document.body.removeChild(link);
 }
 
+function formatConflictDetails(conflicts = []) {
+    if (!conflicts.length) return 'Differences detected.';
+    return conflicts.map((conflict, idx) => {
+        const lines = [`${idx + 1}. ${conflict.productName} (${conflict.productType})`];
+        Object.entries(conflict.differences || {}).forEach(([field, diff]) => {
+            lines.push(`   • ${field}: existing "${diff.existing ?? 'N/A'}" → incoming "${diff.incoming ?? 'N/A'}"`);
+        });
+        return lines.join('\n');
+    }).join('\n\n');
+}
+
+async function submitExcelFile(file, statusElement, overwrite = false) {
+    const formData = new FormData();
+    formData.append('excel-file', file);
+    formData.append('overwrite', overwrite ? 'true' : 'false');
+
+    const response = await fetch('/api/stock/upload-excel', {
+        method: 'POST',
+        body: formData
+    });
+
+    return { response, payload: await response.json() };
+}
+
 // Handle Excel file upload
 async function uploadExcel() {
     const fileInput = document.getElementById('excel-file');
@@ -481,28 +505,49 @@ async function uploadExcel() {
     }
     
     const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append('excel-file', file);
     
     try {
         statusElement.textContent = 'Uploading...';
         statusElement.style.color = 'blue';
-        
-        const response = await fetch('/api/stock/upload-excel', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            statusElement.textContent = `Successfully uploaded ${result.count} records`;
+
+        const initialResult = await submitExcelFile(file, statusElement, false);
+        if (initialResult.response.ok) {
+            const { inserted = 0, updated = 0, skipped = 0 } = initialResult.payload;
+            statusElement.textContent = `Upload complete: ${inserted} inserted, ${updated} updated, ${skipped} skipped.`;
             statusElement.style.color = 'green';
             fileInput.value = '';
-        } else {
-            const error = await response.json();
-            statusElement.textContent = 'Upload failed: ' + error.error;
-            statusElement.style.color = 'red';
+            return;
         }
+
+        if (initialResult.response.status === 409 && initialResult.payload.error === 'CONFLICTS_FOUND') {
+            const conflictMessage = formatConflictDetails(initialResult.payload.conflicts);
+            const proceed = confirm(
+                `Some rows differ from what is already stored.\n\n${conflictMessage}\n\n` +
+                'Click OK to overwrite existing entries with the incoming data, or Cancel to abort.'
+            );
+            
+            if (proceed) {
+                statusElement.textContent = 'Overwriting conflicting records...';
+                statusElement.style.color = 'blue';
+                const overwriteResult = await submitExcelFile(file, statusElement, true);
+                if (overwriteResult.response.ok) {
+                    const { inserted = 0, updated = 0, skipped = 0 } = overwriteResult.payload;
+                    statusElement.textContent = `Overwrite complete: ${inserted} inserted, ${updated} updated, ${skipped} skipped.`;
+                    statusElement.style.color = 'green';
+                    fileInput.value = '';
+                } else {
+                    statusElement.textContent = 'Upload failed: ' + overwriteResult.payload.error;
+                    statusElement.style.color = 'red';
+                }
+            } else {
+                statusElement.textContent = 'Upload cancelled. No changes were made.';
+                statusElement.style.color = 'orange';
+            }
+            return;
+        }
+
+        statusElement.textContent = 'Upload failed: ' + (initialResult.payload?.error || 'Unknown error');
+        statusElement.style.color = 'red';
     } catch (error) {
         statusElement.textContent = 'Upload failed: ' + error.message;
         statusElement.style.color = 'red';
