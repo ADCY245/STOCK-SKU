@@ -300,6 +300,14 @@ function closeProductInfo() {
     }
 }
 
+// Close modal when clicking outside the modal content
+document.addEventListener('click', (e) => {
+    const modal = document.querySelector('.product-info-modal');
+    if (modal && e.target === modal) {
+        modal.remove();
+    }
+});
+
 // Get stock status text
 function getStockStatus(stock, isBlanketPieces = false) {
     if (isBlanketPieces) {
