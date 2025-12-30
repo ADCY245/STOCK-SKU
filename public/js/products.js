@@ -42,11 +42,24 @@ function formatDetailValue(value) {
     return String(value);
 }
 
+function getLengthWidthLabel(key, category) {
+    const isBlanketOrUnderpacking = category === 'blankets' || category === 'underpacking';
+    if (!isBlanketOrUnderpacking) {
+        return formatDetailLabel(key);
+    }
+
+    if (key.toLowerCase() === 'length') return 'Along';
+    if (key.toLowerCase() === 'lengthunit') return 'Along Unit';
+    if (key.toLowerCase() === 'width') return 'Around';
+    if (key.toLowerCase() === 'widthunit') return 'Around Unit';
+    return formatDetailLabel(key);
+}
+
 function buildProductDetailsString(product) {
     const dimensions = product?.dimensions || {};
     const entries = Object.entries(dimensions)
         .filter(([, value]) => value !== null && value !== undefined && value !== '')
-        .map(([key, value]) => `${formatDetailLabel(key)}: ${formatDetailValue(value)}`);
+        .map(([key, value]) => `${getLengthWidthLabel(key, product.category)}: ${formatDetailValue(value)}`);
     return entries.length ? entries.join(' | ') : 'N/A';
 }
 
@@ -263,8 +276,8 @@ function showProductInfo(productId) {
                     
                     <div class="info-section">
                         <h4>Dimensions</h4>
-                        ${dimensions.length ? `<p><strong>Length:</strong> ${dimensions.length} ${dimensions.lengthUnit || 'mm'}</p>` : ''}
-                        ${dimensions.width ? `<p><strong>Width:</strong> ${dimensions.width} ${dimensions.widthUnit || 'mm'}</p>` : ''}
+                        ${dimensions.length ? `<p><strong>${getLengthWidthLabel('length', product.category)}:</strong> ${dimensions.length} ${dimensions.lengthUnit || 'mm'}</p>` : ''}
+                        ${dimensions.width ? `<p><strong>${getLengthWidthLabel('width', product.category)}:</strong> ${dimensions.width} ${dimensions.widthUnit || 'mm'}</p>` : ''}
                         ${dimensions.thickness ? `<p><strong>Thickness:</strong> ${dimensions.thickness} ${dimensions.thicknessUnit || 'mm'}</p>` : ''}
                         ${dimensions.rollNumber ? `<p><strong>Roll Number:</strong> ${dimensions.rollNumber}</p>` : ''}
                         ${dimensions.stockType ? `<p><strong>Stock Type:</strong> ${dimensions.stockType}</p>` : ''}
@@ -492,7 +505,7 @@ function exportToExcel() {
         const categoryDimensionKeys = Array.from(dimensionKeys);
         const headerCells = [
             ...baseHeaders,
-            ...categoryDimensionKeys.map(key => formatDetailLabel(key))
+            ...categoryDimensionKeys.map(key => getLengthWidthLabel(key, category))
         ];
         const colSpan = headerCells.length || baseHeaders.length;
 
