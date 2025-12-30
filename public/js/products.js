@@ -275,6 +275,7 @@ function showProductInfo(productId) {
     
     // Create and show modal
     const modal = document.createElement('div');
+    modal.classList.add('product-info-overlay');
     modal.innerHTML = info;
     modal.style.cssText = `
         position: fixed;
@@ -294,20 +295,17 @@ function showProductInfo(productId) {
 
 // Close product info modal
 function closeProductInfo() {
-    const modal = document.querySelector('.product-info-modal');
+    const modal = document.querySelector('.product-info-overlay');
     if (modal) {
         modal.remove();
     }
 }
 
-// Close modal when clicking outside of modal content or on close button
+// Close modal when clicking outside the modal content
 document.addEventListener('click', (e) => {
-    const modal = document.querySelector('.product-info-modal');
-    if (modal) {
-        // Check if click is on the overlay (outside modal content) or on close button
-        if (e.target === modal || e.target.classList.contains('close-btn')) {
-            modal.remove();
-        }
+    const modalOverlay = document.querySelector('.product-info-overlay');
+    if (modalOverlay && e.target === modalOverlay) {
+        modalOverlay.remove();
     }
 });
 
