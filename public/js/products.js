@@ -50,6 +50,14 @@ function buildProductDetailsString(product) {
     return entries.length ? entries.join(' | ') : 'N/A';
 }
 
+function escapeForExcel(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function displayProducts() {
     const tbody = document.getElementById('products-tbody');
     const categoryFilter = document.getElementById('category-filter').value;
@@ -440,49 +448,55 @@ function exportToExcel() {
         return;
     }
 
-    const includeAllData = confirm('Do you want to export ALL product data? Click Cancel to export only what is currently shown.');
-    const dataToExport = includeAllData ? allProducts : filteredProducts;
+    const categoryFilter = document.getElementById('category-filter').value;
+    const baseHeaders = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Last Updated', 'Status'];
+    const categoryDataMap = {};
+    let exportScopeLabel = 'all';
 
-    if (!dataToExport.length) {
-        alert('No products to export with the current view.');
+    if (categoryFilter) {
+        if (!filteredProducts.length) {
+            alert('No products available to export for the selected filters.');
+            return;
+        }
+        categoryDataMap[categoryFilter] = [...filteredProducts];
+        exportScopeLabel = categoryFilter.replace(/\s+/g, '_').toLowerCase();
+    } else {
+        const proceed = confirm('No category selected. Do you want to export ALL categories? Click Cancel to stop.');
+        if (!proceed) return;
+        allProducts.forEach(product => {
+            if (!categoryDataMap[product.category]) {
+                categoryDataMap[product.category] = [];
+            }
+            categoryDataMap[product.category].push(product);
+        });
+    }
+
+    const categoryEntries = Object.entries(categoryDataMap)
+        .filter(([, products]) => products.length)
+        .sort(([a], [b]) => a.localeCompare(b));
+
+    if (!categoryEntries.length) {
+        alert('No products available to export.');
         return;
     }
 
-    // Group products by category
-    const productsByCategory = {};
-    dataToExport.forEach(product => {
-        if (!productsByCategory[product.category]) {
-            productsByCategory[product.category] = [];
-        }
-        productsByCategory[product.category].push(product);
-    });
-
-    // Collect all possible dimension keys across all products
-    const allDimensionKeys = new Set();
-    dataToExport.forEach(product => {
-        if (product.dimensions) {
-            Object.keys(product.dimensions).forEach(key => allDimensionKeys.add(key));
-        }
-    });
-
-    // Create headers
-    const baseHeaders = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Last Updated', 'Status'];
-    const dimensionHeaders = Array.from(allDimensionKeys).sort().map(key => formatDetailLabel(key));
-    const headers = [...baseHeaders, ...dimensionHeaders];
-
-    // Create CSV content with category grouping
-    const csvRows = [headers.join(',')];
-    
-    Object.keys(productsByCategory).sort().forEach(category => {
-        const products = productsByCategory[category];
-        
-        // Add category header with spacing
-        csvRows.push(''); // Empty row before category
-        csvRows.push(`"${category.toUpperCase()} - ${products.length} PRODUCTS"`);
-        csvRows.push(''); // Empty row after category header
-        
-        // Add products for this category
+    const tableSections = categoryEntries.map(([category, products]) => {
+        const dimensionKeys = new Set();
         products.forEach(product => {
+            Object.entries(product.dimensions || {}).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    dimensionKeys.add(key);
+                }
+            });
+        });
+        const categoryDimensionKeys = Array.from(dimensionKeys);
+        const headerCells = [
+            ...baseHeaders,
+            ...categoryDimensionKeys.map(key => formatDetailLabel(key))
+        ];
+        const colSpan = headerCells.length || baseHeaders.length;
+
+        const productRows = products.map(product => {
             const stockLevel = product.stock || 0;
             const isBlanketPieces = product.category === 'blankets' && 
                                   product.dimensions && 
@@ -591,47 +605,62 @@ function exportToExcel() {
                 displayName += ' (Pieces)';
             }
 
-            // Create row with dimension values
-            const baseValues = [
-                `"${displayName}"`,
-                `"${product.category}"`,
-                `"${quantityDisplay}"`,
-                `"${sizeDisplay}"`,
-                `"${lastUpdated}"`,
-                `"${status}"`
+            const baseCells = [
+                escapeForExcel(displayName),
+                escapeForExcel(product.category),
+                escapeForExcel(quantityDisplay),
+                escapeForExcel(sizeDisplay),
+                escapeForExcel(lastUpdated),
+                escapeForExcel(status)
             ];
 
-            // Add dimension values in the same order as headers
-            const dimensionValues = dimensionHeaders.map(header => {
-                const key = header.toLowerCase().replace(/ /g, '');
-                const actualKey = Array.from(allDimensionKeys).find(k => 
-                    formatDetailLabel(k).toLowerCase().replace(/ /g, '') === key
-                );
-                const value = actualKey ? product.dimensions?.[actualKey] : '';
-                return `"${formatDetailValue(value)}"`;
-            });
+            const dimensionCells = categoryDimensionKeys.map(key => 
+                escapeForExcel(formatDetailValue(product.dimensions?.[key]))
+            );
 
-            csvRows.push([...baseValues, ...dimensionValues].join(','));
-        });
-        
-        // Add spacing after each category (except last)
-        csvRows.push('');
-    });
+            const rowCells = [...baseCells, ...dimensionCells];
+            return `<tr>${rowCells.map(cell => `<td style="border: 1px solid #ccc; padding: 4px;">${cell}</td>`).join('')}</tr>`;
+        }).join('');
 
-    const csvContent = csvRows.join('\n');
+        return `
+            <tr>
+                <td colspan="${colSpan}" style="background-color: #e6f0ff; font-weight: bold; border: 1px solid #99b0d6; padding: 6px;">
+                    ${escapeForExcel(category.toUpperCase())} - ${products.length} ${products.length === 1 ? 'PRODUCT' : 'PRODUCTS'}
+                </td>
+            </tr>
+            <tr>
+                ${headerCells.map(header => `<th style="background-color: #f8f8f8; border: 1px solid #ccc; text-align: left; padding: 5px;">${escapeForExcel(header)}</th>`).join('')}
+            </tr>
+            ${productRows}
+            <tr><td colspan="${colSpan}" style="height: 12px;"></td></tr>
+        `;
+    }).join('');
 
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const htmlContent = `
+        <html>
+            <head>
+                <meta charset="UTF-8" />
+            </head>
+            <body>
+                <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;">
+                    ${tableSections}
+                </table>
+            </body>
+        </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
-    // Generate filename with timestamp
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `products_export_${timestamp}.csv`);
-    link.style.visibility = 'hidden';
-    
+    const filename = categoryFilter
+        ? `products_${exportScopeLabel}_${timestamp}.xls`
+        : `products_all_${timestamp}.xls`;
+
+    link.href = url;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
