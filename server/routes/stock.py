@@ -438,10 +438,20 @@ def upload_excel():
                 roll_number = None if pd.isna(row['rollNumber']) else str(row['rollNumber'])
                 import_date = None if pd.isna(row['importDate']) else pd.to_datetime(row['importDate']).to_pydatetime()
                 taken_date = None if pd.isna(row.get('takenDate')) else pd.to_datetime(row['takenDate']).to_pydatetime()
+                length_unit = str(row.get('lengthUnit', 'mm')).strip()
+                width_unit = str(row.get('widthUnit', 'mm')).strip()
                 
-                # Calculate sq.mtr (fallback to 0 if dimensions missing)
-                length_mtr = (length or 0) / 1000 if length and length > 100 else (length or 0)
-                width_mtr = (width or 0) / 1000 if width and width > 100 else (width or 0)
+                # Convert to meters and calculate sq.mtr
+                def to_meters(value, unit):
+                    if unit == 'mm':
+                        return value / 1000
+                    elif unit == 'inch':
+                        return value * 0.0254
+                    else:  # mtr
+                        return value
+                
+                length_mtr = to_meters(length, length_unit) if length else 0
+                width_mtr = to_meters(width, width_unit) if width else 0
                 sq_mtr = round(length_mtr * width_mtr, 2) if length and width else 0
                 
                 product = db.products.find_one({
@@ -517,13 +527,11 @@ def upload_excel():
                         'thickness': thickness,
                         'thicknessUnit': row.get('thicknessUnit', 'mm'),
                         'rollNumber': roll_number,
-                        'stockType': 'roll'
+                        'importDate': import_date,
+                        'takenDate': taken_date,
+                        'sqMtr': sq_mtr,
+                        'createdAt': datetime.utcnow()
                     }
-                    if import_date:
-                        dimensions['importDate'] = import_date.isoformat()
-                    if taken_date:
-                        dimensions['takenDate'] = taken_date.isoformat()
-                    
                     product_payload = {
                         'name': product_name,
                         'category': product_type,

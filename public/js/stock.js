@@ -291,6 +291,8 @@ function calculateSqMtr() {
     // Convert length to meters
     if (lengthUnit === 'mm') {
         lengthInMtr = length / 1000; // mm to mtr
+    } else if (lengthUnit === 'inch') {
+        lengthInMtr = length * 0.0254; // inch to mtr
     } else {
         lengthInMtr = length; // already in mtr
     }
@@ -298,6 +300,8 @@ function calculateSqMtr() {
     // Convert width to meters
     if (widthUnit === 'mm') {
         widthInMtr = width / 1000; // mm to mtr
+    } else if (widthUnit === 'inch') {
+        widthInMtr = width * 0.0254; // inch to mtr
     } else {
         widthInMtr = width; // already in mtr
     }
@@ -357,8 +361,10 @@ function calculatePiecesSqMtr() {
         const lengthUnit = document.getElementById('length-unit').value;
         
         // Convert to meters
-        const widthInMtr = widthUnit === 'mm' ? width / 1000 : width;
-        const lengthInMtr = lengthUnit === 'mm' ? length / 1000 : length;
+        const widthInMtr = widthUnit === 'mm' ? width / 1000 : 
+                           widthUnit === 'inch' ? width * 0.0254 : width;
+        const lengthInMtr = lengthUnit === 'mm' ? length / 1000 : 
+                            lengthUnit === 'inch' ? length * 0.0254 : length;
         
         // Calculate sq.mtr per piece and total
         const sqMtrPerPiece = widthInMtr * lengthInMtr;

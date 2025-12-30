@@ -107,9 +107,13 @@ function displayProducts() {
             // For rolls (check if has length and width dimensions but not blanket pieces)
             const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
                 (product.dimensions?.length || 0) / 1000 : 
+                product.dimensions?.lengthUnit === 'inch' ?
+                (product.dimensions?.length || 0) * 0.0254 :
                 (product.dimensions?.length || 0);
             const widthInMtr = product.dimensions?.widthUnit === 'mm' ? 
-                (product.dimensions?.width || 0) / 1000 : 
+                (product.dimensions?.width || 0) / 1000 :
+                product.dimensions?.widthUnit === 'inch' ?
+                (product.dimensions?.width || 0) * 0.0254 :
                 (product.dimensions?.width || 0);
             const calculatedSqMtr = lengthInMtr * widthInMtr;
             
@@ -523,8 +527,7 @@ function exportToExcel() {
             if (isBlanketPieces) {
                 stockQuantity = stockLevel.toFixed(0);
                 stockQuantityUnit = 'pcs';
-                const sqMtrPerPiece = product.dimensions?.sqMtrPerPiece || 0;
-                stockSize = `${sqMtrPerPiece.toFixed(4)} sq.mtr/pc (${stockLevel} pcs)`;
+                stockSize = '';
                 stockSizeUnit = '';
             } else if (product.dimensions?.length && product.dimensions?.width && !isBlanketPieces) {
                 const lengthInMtr = product.dimensions?.lengthUnit === 'mm' ? 
@@ -538,12 +541,12 @@ function exportToExcel() {
                 if (product.category === 'underpacking') {
                     stockQuantity = widthInMtr.toFixed(2);
                     stockQuantityUnit = 'mtr';
-                    stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+                    stockSize = '';
                     stockSizeUnit = '';
                 } else if (product.category === 'blankets') {
                     stockQuantity = lengthInMtr.toFixed(2);
                     stockQuantityUnit = 'mtr';
-                    stockSize = `${calculatedSqMtr.toFixed(4)} sq.mtr`;
+                    stockSize = '';
                     stockSizeUnit = '';
                 } else {
                     stockQuantity = stockLevel.toFixed(2);
@@ -556,8 +559,8 @@ function exportToExcel() {
                     const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = chemicalUnit;
-                    stockSize = stockLevel.toFixed(2);
-                    stockSizeUnit = chemicalUnit;
+                    stockSize = '';
+                    stockSizeUnit = '';
                 } else if (product.category === 'rules') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = product.dimensions?.stockUnit || '';
