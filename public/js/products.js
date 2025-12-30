@@ -25,6 +25,31 @@ function formatDimension(value, decimals = 2) {
     return num.toFixed(decimals);
 }
 
+function formatDetailLabel(key) {
+    if (!key) return '';
+    return key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, char => char.toUpperCase())
+        .trim();
+}
+
+function formatDetailValue(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+    }
+    return String(value);
+}
+
+function buildProductDetailsString(product) {
+    const dimensions = product?.dimensions || {};
+    const entries = Object.entries(dimensions)
+        .filter(([, value]) => value !== null && value !== undefined && value !== '')
+        .map(([key, value]) => `${formatDetailLabel(key)}: ${formatDetailValue(value)}`);
+    return entries.length ? entries.join(' | ') : 'N/A';
+}
+
 function displayProducts() {
     const tbody = document.getElementById('products-tbody');
     const categoryFilter = document.getElementById('category-filter').value;
@@ -410,16 +435,24 @@ function sortProducts() {
 
 // Export current filtered products to Excel
 function exportToExcel() {
-    if (filteredProducts.length === 0) {
-        alert('No products to export');
+    if (!allProducts.length) {
+        alert('No products loaded to export');
+        return;
+    }
+
+    const includeAllData = confirm('Do you want to export ALL product data? Click Cancel to export only what is currently shown.');
+    const dataToExport = includeAllData ? allProducts : filteredProducts;
+
+    if (!dataToExport.length) {
+        alert('No products to export with the current view.');
         return;
     }
 
     // Create CSV content
-    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Roll Number', 'Last Updated', 'Status'];
+    const headers = ['Product Name', 'Category', 'Stock Quantity', 'Stock Size', 'Product Details', 'Roll Number', 'Last Updated', 'Status'];
     const csvContent = [
         headers.join(','),
-        ...filteredProducts.map(product => {
+        ...dataToExport.map(product => {
             const stockLevel = product.stock || 0;
             const isBlanketPieces = product.category === 'blankets' && 
                                   product.dimensions && 
@@ -461,41 +494,56 @@ function exportToExcel() {
                     // Other products with dimensions but no sq.mtr display
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = 'units';
-                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                    stockSize = stockLevel.toFixed(2);
                     stockSizeUnit = 'units';
                 }
             } else {
                 // Default case for other products - determine units based on category
                 if (product.category === 'chemicals') {
+                    const chemicalUnit = product.dimensions?.chemicalUnit || 'ltrs';
                     stockQuantity = stockLevel.toFixed(2);
-                    stockQuantityUnit = 'ltrs';
-                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
-                    stockSizeUnit = 'ltrs';
+                    stockQuantityUnit = chemicalUnit;
+                    stockSize = stockLevel.toFixed(2);
+                    stockSizeUnit = chemicalUnit;
                 } else if (product.category === 'rules') {
                     stockQuantity = stockLevel.toFixed(0);
-                    stockQuantityUnit = 'coils';
-                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
-                    stockSizeUnit = 'coils';
+                    stockQuantityUnit = product.dimensions?.stockUnit || '';
+                    const containerLength = product.dimensions?.ruleContainerLength;
+                    const containerWidth = product.dimensions?.ruleContainerWidth;
+                    const containerType = product.dimensions?.ruleContainerType;
+                    if (containerLength != null && containerWidth != null && containerType) {
+                        const lengthDisplay = formatDimension(containerLength);
+                        const widthDisplay = formatDimension(containerWidth);
+                        stockSize = `${lengthDisplay} x ${widthDisplay} x ${containerType}`;
+                        stockSizeUnit = '';
+                    } else {
+                        stockSize = stockLevel.toFixed(0);
+                        stockSizeUnit = product.dimensions?.stockUnit || '';
+                    }
                 } else if (product.category === 'matrix') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = 'pkts';
-                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
+                    stockSize = stockLevel.toFixed(0);
                     stockSizeUnit = 'pkts';
                 } else if (product.category === 'litho perf') {
                     stockQuantity = stockLevel.toFixed(0);
                     stockQuantityUnit = 'pkts';
-                    stockSize = stockLevel.toFixed(0); // Show product stock instead of sq.mtr
+                    stockSize = stockLevel.toFixed(0);
                     stockSizeUnit = 'pkts';
                 } else {
                     stockQuantity = stockLevel.toFixed(2);
                     stockQuantityUnit = 'units';
-                    stockSize = stockLevel.toFixed(2); // Show product stock instead of sq.mtr
+                    stockSize = stockLevel.toFixed(2);
                     stockSizeUnit = 'units';
                 }
             }
+
+            const quantityDisplay = stockQuantityUnit ? `${stockQuantity} [${stockQuantityUnit}]` : `${stockQuantity}`;
+            const sizeDisplay = stockSizeUnit ? `${stockSize} [${stockSizeUnit}]` : `${stockSize}`;
             
             // Get roll number from dimensions
             let rollNumber = product.dimensions?.rollNumber || 'N/A';
+            const productDetails = buildProductDetailsString(product);
             
             // Create differentiated product name for display (without roll number brackets)
             let displayName = product.name;
@@ -514,8 +562,9 @@ function exportToExcel() {
             return [
                 `"${displayName}"`,
                 `"${product.category}"`,
-                `"${stockQuantity} [${stockQuantityUnit}]"`,
-                `"${stockSize}"`,
+                `"${quantityDisplay}"`,
+                `"${sizeDisplay}"`,
+                `"${productDetails}"`,
                 `"${rollNumber}"`,
                 `"${lastUpdated}"`,
                 `"${status}"`

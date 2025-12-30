@@ -467,6 +467,13 @@ async function uploadExcel() {
     const fileInput = document.getElementById('excel-file');
     const statusElement = document.getElementById('upload-status');
     
+    const confirmAllData = confirm('Does the Excel file you are uploading contain ALL rows you want imported (not just what is currently shown)? Click Cancel to double-check.');
+    if (!confirmAllData) {
+        statusElement.textContent = 'Upload cancelled. Please ensure the Excel file contains all required data.';
+        statusElement.style.color = 'orange';
+        return;
+    }
+    
     if (!fileInput.files.length) {
         statusElement.textContent = 'Please select a file first';
         statusElement.style.color = 'red';
