@@ -625,7 +625,7 @@ function exportToExcel() {
         return `
             <tr>
                 <td colspan="${colSpan}" style="background-color: #e6f0ff; font-weight: bold; border: 1px solid #99b0d6; padding: 6px;">
-                    ${escapeForExcel(category.toUpperCase())} - ${products.length} ${products.length === 1 ? 'PRODUCT' : 'PRODUCTS'}
+                    ${escapeForExcel(category.toUpperCase())}
                 </td>
             </tr>
             <tr>
