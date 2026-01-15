@@ -129,8 +129,8 @@ function handleBarring() {
 // Generate SKU and create product
 async function generateSKU() {
     const companySelect = document.getElementById('company-select');
-    const productName = document.getElementById('product-name').value.trim();
-    const productType = document.getElementById('product-type').value;
+    const productName = document.getElementById('brand-name').value.trim();
+    const productType = document.getElementById('imported-code').value;
     const thickness = document.getElementById('thickness').value.trim();
     const length = document.getElementById('length').value.trim();
     const width = document.getElementById('width').value.trim();
