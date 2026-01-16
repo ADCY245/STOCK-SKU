@@ -195,23 +195,10 @@ async function generateSKU() {
             specifications
         });
 
-        const specLines = [];
-        if (thickness) specLines.push(`Thickness: ${thickness}`);
-        if (length && width) specLines.push(`Length: ${length}`, `Width: ${width}`);
-        if (barring) specLines.push(`Barring: ${barring === 'yes' ? 'Yes' : 'No'}`);
-        if (barring === 'yes' && barNumber) specLines.push(`Bar Number: ${barNumber}`);
-
-        const detailHtml = specLines.length
-            ? `<ul>${specLines.map((line) => `<li>${line}</li>`).join('')}</ul>`
-            : '<p>No specification details provided.</p>';
-
         document.getElementById('sku-result').innerHTML = `
             <div>
                 <p>Generated Numeric SKU:</p>
                 <strong>${result.sku}</strong>
-                <p class="sku-meta">Brand: ${productName} (${brandShortform})</p>
-                <p class="sku-meta">Imported Code: ${importedCode}</p>
-                ${detailHtml}
             </div>
         `;
 
