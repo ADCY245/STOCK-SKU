@@ -1,10 +1,66 @@
+let cachedCompanies = [];
+
 // Load companies on page load
 document.addEventListener('DOMContentLoaded', loadCompanies);
+
+const LETTER_OFFSET = 64; // 'A' => 65 in ASCII
+
+const convertTextToNumeric = (value = '') => {
+    if (!value) return '';
+    return value
+        .toUpperCase()
+        .split('')
+        .map((char) => {
+            if (char >= 'A' && char <= 'Z') {
+                return String(char.charCodeAt(0) - LETTER_OFFSET).padStart(2, '0');
+            }
+            if (/\d/.test(char)) return char;
+            return '';
+        })
+        .join('');
+};
+
+function setNumericDisplay(elementId, label, value) {
+    const target = document.getElementById(elementId);
+    if (!target) return;
+
+    if (value) {
+        target.style.display = 'block';
+        target.dataset.numericValue = value;
+        target.textContent = `${label}: ${value}`;
+    } else {
+        target.style.display = 'none';
+        target.dataset.numericValue = '';
+        target.textContent = '';
+    }
+}
+
+function computeNumericForType(type) {
+    const inputId = type === 'company' ? 'company-shortform' : 'brand-shortform';
+    const displayId = type === 'company' ? 'company-numeric' : 'brand-numeric';
+    const label = type === 'company' ? 'Company Numeric' : 'Brand Numeric';
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const numericValue = convertTextToNumeric(input.value.trim());
+    setNumericDisplay(displayId, label, numericValue);
+}
+
+function getSelectedCompany(code) {
+    return cachedCompanies.find((company) => company.code === code);
+}
+
+function showCompanyNumericFromShortform(shortform, name) {
+    const descriptor = shortform ? `${name || ''} (${shortform})`.trim() : (name || 'Company');
+    const numericValue = convertTextToNumeric(shortform || name || '');
+    const label = descriptor ? `${descriptor} Numeric` : 'Company Numeric';
+    setNumericDisplay('company-numeric', label, numericValue);
+}
 
 // Load companies from database
 async function loadCompanies() {
     try {
         const companies = await api.getCompanies();
+        cachedCompanies = companies || [];
         const companySelect = document.getElementById('company-select');
         
         // Clear existing options except "Add New Company"
@@ -49,13 +105,14 @@ function handleCompanySelect() {
         shortformInput.value = '';
         numericEl.textContent = '';
         shortformInput.disabled = false;
+        setNumericDisplay('company-numeric', 'Company Numeric', '');
     } else if (select.value) {
         // Hide new company inputs
         newCompanyInput.style.display = 'none';
         shortformLabel.style.display = 'none';
         shortformInput.style.display = 'none';
         shortformInput.disabled = true;
-        
+
         // Show company info from database
         showCompanyInfo(select.value);
     } else {
@@ -65,18 +122,19 @@ function handleCompanySelect() {
         shortformInput.style.display = 'none';
         numericEl.style.display = 'none';
         shortformInput.disabled = false;
+        setNumericDisplay('company-numeric', 'Company Numeric', '');
     }
 }
 
 async function showCompanyInfo(companyCode) {
     try {
-        const companies = await api.getCompanies();
-        const company = companies.find(c => c.code === companyCode);
-        
+        if (!cachedCompanies.length) {
+            cachedCompanies = await api.getCompanies();
+        }
+        const company = getSelectedCompany(companyCode);
+
         if (company) {
-            const numericEl = document.getElementById('company-numeric');
-            numericEl.style.display = 'block';
-            numericEl.textContent = `Company: ${company.name} (${company.short_form})`;
+            showCompanyNumericFromShortform(company.short_form, company.name);
         }
     } catch (error) {
         console.error('Error showing company info:', error);
@@ -90,6 +148,7 @@ const generateShortform = (type) => {
     if (name && shortformInput.style.display !== 'none') {
         const shortform = name.substring(0, 2).toUpperCase();
         shortformInput.value = shortform;
+        computeNumericForType(type);
     }
 };
 
@@ -129,29 +188,58 @@ function handleBarring() {
 // Generate SKU and create product
 async function generateSKU() {
     const companySelect = document.getElementById('company-select');
-    const productName = document.getElementById('brand-name').value.trim();
-    const productType = document.getElementById('imported-code').value;
-    const thickness = document.getElementById('thickness').value.trim();
-    const length = document.getElementById('length').value.trim();
-    const width = document.getElementById('width').value.trim();
+    const brandNameInput = document.getElementById('brand-name');
+    const brandShortformInput = document.getElementById('brand-shortform');
+    const importedCodeInput = document.getElementById('imported-code');
+    const companyShortformInput = document.getElementById('company-shortform');
+
+    if (!companySelect || !brandNameInput || !brandShortformInput || !importedCodeInput) {
+        alert('Unable to find SKU form fields. Please refresh the page.');
+        return;
+    }
+
+    const productName = brandNameInput.value.trim();
+    const brandShortform = brandShortformInput.value.trim().toUpperCase();
+    const importedCode = importedCodeInput.value.trim();
+    const thickness = (document.getElementById('thickness').value || '').trim();
+    const length = (document.getElementById('length').value || '').trim();
+    const width = (document.getElementById('width').value || '').trim();
     const barring = document.getElementById('barring').value;
-    const barNumber = document.getElementById('bar-number').value.trim();
+    const barNumber = (document.getElementById('bar-number').value || '').trim();
 
     // Validation
-    if (!companySelect.value || !productName || !productType) {
+    if (!companySelect.value) {
+        alert('Please select a company.');
+        return;
+    }
+
+    if (!productName || !brandShortform || !importedCode) {
         alert('Please fill all required fields.');
         return;
     }
 
     if (companySelect.value === 'new') {
         const newCompanyName = document.getElementById('new-company').value.trim();
-        const companyShortform = document.getElementById('company-shortform').value.trim();
-        
+        const companyShortform = companyShortformInput.value.trim().toUpperCase();
+
         if (!newCompanyName || !companyShortform) {
             alert('Please fill in the new company details.');
             return;
         }
     }
+
+    computeNumericForType('brand');
+    if (companySelect.value === 'new') {
+        computeNumericForType('company');
+    }
+
+    const selectedCompany = companySelect.value !== 'new' ? getSelectedCompany(companySelect.value) : null;
+    const companyShortform = companySelect.value === 'new'
+        ? companyShortformInput.value.trim().toUpperCase()
+        : selectedCompany?.short_form || '';
+    const companyName = companySelect.value === 'new'
+        ? document.getElementById('new-company').value.trim()
+        : selectedCompany?.name || '';
 
     // Build specifications object
     const specifications = {
@@ -163,33 +251,25 @@ async function generateSKU() {
     };
 
     try {
-        // Check for duplicate product first
-        const duplicateCheck = await api.checkDuplicateProduct(productName);
-        
-        if (duplicateCheck.exists) {
-            document.getElementById('sku-result').innerHTML = 
-                `Product already exists!<br>SKU: ${duplicateCheck.sku}<br>
-                <button onclick="viewProduct('${duplicateCheck.productId}')">View Product</button>`;
-            return;
-        }
-
-        // Generate SKU and create product
         const result = await api.generateSKU({
-            company: companySelect.value === 'new' ? 
-                document.getElementById('new-company').value.trim() : companySelect.value,
-            productName: productName,
-            productType: productType,
-            specifications: specifications
+            company: companySelect.value === 'new' ? null : companySelect.value,
+            companyName,
+            companyShortform,
+            brandName: productName,
+            brandShortform,
+            importedCode,
+            specifications
         });
 
         document.getElementById('sku-result').innerHTML = 
-            `Product created successfully!<br>SKU: ${result.sku}<br>
-            <button onclick="viewProduct('${result.productId}')">View Product</button>`;
-        
+            `Generated Numeric SKU:<br><strong>${result.sku}</strong>`;
+
         // Reset form
         document.getElementById('sku-form').reset();
         handleCompanySelect();
-        
+        setNumericDisplay('brand-numeric', 'Brand Numeric', '');
+        setNumericDisplay('company-numeric', 'Company Numeric', '');
+
     } catch (error) {
         alert('Error creating product: ' + error.message);
     }
@@ -206,10 +286,6 @@ if (typeof api !== 'undefined') {
     api.generateSKU = (data) => apiCall('/sku/generate', {
         method: 'POST',
         body: JSON.stringify(data),
-    });
-    api.checkDuplicateProduct = (productName) => apiCall('/sku/check-duplicate', {
-        method: 'POST',
-        body: JSON.stringify({ productName }),
     });
 } else {
     // Fallback if api.js not loaded
@@ -232,10 +308,6 @@ if (typeof api !== 'undefined') {
         generateSKU: (data) => apiCall('/sku/generate', {
             method: 'POST',
             body: JSON.stringify(data),
-        }),
-        checkDuplicateProduct: (productName) => apiCall('/sku/check-duplicate', {
-            method: 'POST',
-            body: JSON.stringify({ productName }),
         }),
     };
 }
