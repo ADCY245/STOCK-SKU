@@ -8,38 +8,41 @@ sku_bp = Blueprint('sku', __name__)
 def generate_sku():
     data = request.get_json()
     
-    required_fields = ['company', 'productName', 'productType', 'specifications']
+    required_fields = ['companyShortform', 'brandShortform', 'importedCode', 'specifications']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
     
     try:
-        # Generate SKU based on company code and specifications
-        company = db.companies.find_one({'code': data['company']})
-        if not company:
-            return jsonify({'error': 'Invalid company code'}), 400
+        # Convert text to numeric (A=1, B=2, etc.)
+        def text_to_numeric(text):
+            if not text:
+                return ''
+            result = ''
+            for char in text.upper():
+                if 'A' <= char <= 'Z':
+                    result += str(ord(char) - ord('A') + 1).zfill(2)
+                elif char.isdigit():
+                    result += char
+            return result
         
-        # Generate SKU: COMPANY-PRODUCT_TYPE-SERIAL
-        product_type_code = data['productType'].upper()[:3]
+        company_numeric = text_to_numeric(data['companyShortform'])
+        brand_numeric = text_to_numeric(data['brandShortform'])
+        
+        # Generate numeric SKU: COMPANY_NUMERIC-BRAND_NUMERIC-IMPORTED_CODE-SERIAL
         serial_number = str(db.products.count_documents({}) + 1).zfill(4)
-        sku = f"{company['short_form']}-{product_type_code}-{serial_number}"
-        
-        # Check if product already exists
-        existing_product = db.products.find_one({'name': data['productName']})
-        if existing_product:
-            return jsonify({
-                'message': 'Product already exists',
-                'sku': existing_product.get('sku', 'N/A'),
-                'productId': str(existing_product['_id'])
-            }), 200
+        sku = f"{company_numeric}-{brand_numeric}-{data['importedCode']}-{serial_number}"
         
         # Create new product
         product_data = {
-            'name': data['productName'],
-            'category': data['productType'],
+            'name': data.get('brandName', ''),
+            'category': 'imported',
             'sku': sku,
-            'company': company['name'],
-            'companyCode': data['company'],
+            'company': data.get('companyName', ''),
+            'companyCode': data.get('company', ''),
+            'brandShortform': data['brandShortform'],
+            'companyShortform': data['companyShortform'],
+            'importedCode': data['importedCode'],
             'specifications': data['specifications'],
             'stock': 0,
             'imported': True,
@@ -50,7 +53,7 @@ def generate_sku():
         result = db.products.insert_one(product_data)
         
         return jsonify({
-            'message': 'Product created successfully',
+            'message': 'SKU generated successfully',
             'sku': sku,
             'productId': str(result.inserted_id)
         }), 201
