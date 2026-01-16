@@ -29,10 +29,12 @@ class Product:
         # Convert ObjectId to string for JSON serialization
         for product in products:
             product['_id'] = str(product['_id'])
-            if 'createdAt' in product:
-                product['createdAt'] = product['createdAt'].isoformat()
-            if 'lastUpdated' in product and product['lastUpdated']:
-                product['lastUpdated'] = product['lastUpdated'].isoformat()
+            created_at = product.get('createdAt')
+            if created_at is not None and hasattr(created_at, 'isoformat'):
+                product['createdAt'] = created_at.isoformat()
+            last_updated = product.get('lastUpdated')
+            if last_updated is not None and hasattr(last_updated, 'isoformat'):
+                product['lastUpdated'] = last_updated.isoformat()
         return products
 
     @staticmethod

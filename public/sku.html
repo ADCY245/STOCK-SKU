@@ -55,16 +55,14 @@
                 </select>
                 <input type="text" id="new-company" placeholder="Enter new company name" style="display:none;" oninput="generateShortform('company')" required>
                 <label for="company-shortform" id="company-shortform-label" style="display:none;">Company Shortform (2 letters) *:</label>
-                <input type="text" id="company-shortform" maxlength="2" placeholder="e.g., MT" style="display:none;" oninput="computeNumericForType('company')" required>
-                <p id="company-numeric" style="display:none;"></p>
+                <input type="text" id="company-shortform" maxlength="2" placeholder="e.g., MT" style="display:none;" oninput="handleShortformInput('company')" required>
             </div>
 
             <div>
                 <label for="brand-name">Brand Name *:</label>
                 <input type="text" id="brand-name" placeholder="Enter brand name" oninput="generateShortform('brand')" required>
                 <label for="brand-shortform">Brand Shortform (2 letters) *:</label>
-                <input type="text" id="brand-shortform" maxlength="2" placeholder="e.g., SS" oninput="computeNumericForType('brand')" required>
-                <p id="brand-numeric" style="display:none;"></p>
+                <input type="text" id="brand-shortform" maxlength="2" placeholder="e.g., SS" oninput="handleShortformInput('brand')" required>
             </div>
 
             <div>
