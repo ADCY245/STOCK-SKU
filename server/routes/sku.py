@@ -29,9 +29,22 @@ def generate_sku():
         company_numeric = text_to_numeric(data['companyShortform'])
         brand_numeric = text_to_numeric(data['brandShortform'])
         
-        # Generate numeric SKU: COMPANY_NUMERIC-BRAND_NUMERIC-IMPORTED_CODE-SERIAL
-        serial_number = str(db.products.count_documents({}) + 1).zfill(4)
-        sku = f"{company_numeric}-{brand_numeric}-{data['importedCode']}-{serial_number}"
+        # Build spec suffix: thickness-length-width-bar(if any)
+        specs = data['specifications']
+        spec_parts = []
+        if specs.get('thickness'):
+            spec_parts.append(str(specs['thickness']))
+        if specs.get('length'):
+            spec_parts.append(str(specs['length']))
+        if specs.get('width'):
+            spec_parts.append(str(specs['width']))
+        if specs.get('barring') == 'yes' and specs.get('barNumber'):
+            spec_parts.append(str(specs['barNumber']))
+        
+        spec_suffix = '-'.join(spec_parts) if spec_parts else '0000'
+        
+        # Generate SKU: COMPANY_NUMERIC-BRAND_NUMERIC-IMPORTED_CODE-SPEC_SUFFIX
+        sku = f"{company_numeric}-{brand_numeric}-{data['importedCode']}-{spec_suffix}"
         
         # Create new product
         product_data = {
