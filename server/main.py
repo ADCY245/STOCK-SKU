@@ -1,13 +1,10 @@
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from routes.products import products_bp
-from routes.stock import stock_bp
-from routes.reports import reports_bp
-from routes.sku import sku_bp
+from .routes.products import products_bp
+from .routes.stock import stock_bp
+from .routes.reports import reports_bp
+from .routes.sku import sku_bp
 
 app = Flask(__name__, static_folder='../public', static_url_path='')
 CORS(app)  # Enable CORS for frontend
