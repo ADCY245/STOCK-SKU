@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.product import Product
+from ..models.product import Product
 
 products_bp = Blueprint('products', __name__)
 

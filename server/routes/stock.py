@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models.product import Product
-from models.stock_transaction import StockTransaction
+from ..models.product import Product
+from ..models.stock_transaction import StockTransaction
 from datetime import datetime
 import pandas as pd
 import io
