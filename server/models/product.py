@@ -1,4 +1,4 @@
-from db.database import db
+from ..db.database import db
 from bson import ObjectId
 from datetime import datetime
 

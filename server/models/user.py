@@ -1,4 +1,4 @@
-from db.database import db
+from ..db.database import db
 
 class User:
     def __init__(self, username, password, role='user'):
