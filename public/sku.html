@@ -20,6 +20,20 @@
     </header>
     <main>
         <h2>SKU Generator</h2>
+        <div class="upload-section">
+            <h3>Analyze SKU Excel</h3>
+            <p class="sku-upload-note">
+                Upload a large Excel file with the columns <strong>Name</strong>, <strong>Description</strong>, and <strong>Product Format</strong>.
+                The system will append <strong>Brand</strong>, <strong>Specification</strong>, <strong>Size</strong>, <strong>Type</strong>, and <strong>Category</strong>.
+            </p>
+            <input type="file" id="sku-excel-file" accept=".xlsx,.xls" />
+            <button type="button" onclick="analyzeSkuExcel()">Analyze Excel</button>
+            <button type="button" class="template-button" onclick="downloadSkuTemplate()">Download Template</button>
+            <p id="sku-upload-status"></p>
+        </div>
+
+        <div class="divider">OR</div>
+
         <form id="sku-form">
             <div>
                 <label for="company-select">Company *:</label>
@@ -100,6 +114,7 @@
         </form>
         <div id="sku-result" style="margin-top: 1rem; font-size: 1.2em; font-weight: bold;"></div>
     </main>
+    <script src="js/api.js"></script>
     <script src="js/sku.js"></script>
 </body>
 </html>
