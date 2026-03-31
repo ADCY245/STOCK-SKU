@@ -267,10 +267,38 @@ def analyze_excel():
 
         df = pd.read_excel(file, dtype=str)
 
-        required_columns = ['Name', 'Description', 'Product Format']
-        missing_columns = [column for column in required_columns if column not in df.columns]
+        # Normalize incoming headers so uploads do not fail on minor naming differences.
+        column_lookup = {}
+        for original in df.columns:
+            normalized = re.sub(r'[^a-z0-9]+', ' ', str(original).strip().lower()).strip()
+            if normalized:
+                column_lookup[normalized] = original
+
+        required_aliases = {
+            'name': ['name', 'item name', 'product name', 'itemname', 'productname'],
+            'description': ['description', 'desc', 'item description', 'product description'],
+            'product_format': ['product format', 'product form', 'format', 'pack size', 'size format'],
+        }
+
+        resolved_columns = {}
+        missing_columns = []
+        for logical_name, aliases in required_aliases.items():
+            found_column = None
+            for alias in aliases:
+                normalized_alias = re.sub(r'[^a-z0-9]+', ' ', alias.strip().lower()).strip()
+                if normalized_alias in column_lookup:
+                    found_column = column_lookup[normalized_alias]
+                    break
+            if found_column:
+                resolved_columns[logical_name] = found_column
+            else:
+                missing_columns.append(logical_name)
+
         if missing_columns:
-            return jsonify({'error': f"Missing required column(s): {', '.join(missing_columns)}"}), 400
+            expected = 'name/item name/product name, description, product format/product form'
+            return jsonify({
+                'error': f"Missing required column(s): {', '.join(missing_columns)}. Expected headers include: {expected}"
+            }), 400
 
         brands = []
         specifications = []
@@ -280,9 +308,9 @@ def analyze_excel():
         categorized_rows = 0
 
         for _, row in df.iterrows():
-            name = row.get('Name', '')
-            description = row.get('Description', '')
-            product_format = row.get('Product Format', '')
+            name = row.get(resolved_columns['name'], '')
+            description = row.get(resolved_columns['description'], '')
+            product_format = row.get(resolved_columns['product_format'], '')
 
             size_value = _extract_size(name, description, product_format)
             brand_value = _extract_brand(name, description)
