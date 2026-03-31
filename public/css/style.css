@@ -138,6 +138,11 @@ th {
     color: #333;
 }
 
+.sku-upload-note {
+    margin-bottom: 1rem;
+    color: #555;
+}
+
 .divider {
     text-align: center;
     margin: 2rem 0;

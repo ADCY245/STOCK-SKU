@@ -1,8 +1,156 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from ..models.product import Product
 from ..db.database import db
+import io
+import re
+import pandas as pd
 
 sku_bp = Blueprint('sku', __name__)
+
+CATEGORY_RULES = [
+    {'code': '04', 'name': 'Blanket Barring', 'type': 'Barring', 'keywords': ['blanket barring', 'barring', 'barred blanket', 'bar blanket']},
+    {'code': '02', 'name': 'Metalback Blankets', 'type': 'Metalback Blanket', 'keywords': ['metalback blanket', 'metal back blanket', 'metalback', 'metal back']},
+    {'code': '03', 'name': 'Underlay Blanket', 'type': 'Underlay Blanket', 'keywords': ['underlay blanket']},
+    {'code': '05', 'name': 'Calibrated Underpacking Paper', 'type': 'Underpacking Paper', 'keywords': ['calibrated underpacking paper', 'underpacking paper', 'packing paper']},
+    {'code': '06', 'name': 'Calibrated Underpacking Film', 'type': 'Underpacking Film', 'keywords': ['calibrated underpacking film', 'underpacking film', 'packing film', 'polyester film', 'mylar film']},
+    {'code': '07', 'name': 'Creasing Matrix', 'type': 'Matrix', 'keywords': ['creasing matrix', 'matrix']},
+    {'code': '10', 'name': 'Litho Perforation Rules', 'type': 'Perforation Rule', 'keywords': ['litho perforation rule', 'perforation rule', 'perf rule', 'micro perf']},
+    {'code': '08', 'name': 'Cutting Rules', 'type': 'Cutting Rule', 'keywords': ['cutting rule', 'cut rule']},
+    {'code': '09', 'name': 'Creasing Rules', 'type': 'Creasing Rule', 'keywords': ['creasing rule', 'crease rule', 'scoring rule']},
+    {'code': '11', 'name': 'Cutting String', 'type': 'String', 'keywords': ['cutting string', 'cut string']},
+    {'code': '12', 'name': 'Ejection Rubber', 'type': 'Ejection Rubber', 'keywords': ['ejection rubber', 'ejection']},
+    {'code': '13', 'name': 'Strip Plate', 'type': 'Strip Plate', 'keywords': ['strip plate']},
+    {'code': '14', 'name': 'Anti Marking Film', 'type': 'Anti Marking Film', 'keywords': ['anti marking film', 'anti-marking film']},
+    {'code': '15', 'name': 'Ink Duct Foil', 'type': 'Foil', 'keywords': ['ink duct foil', 'ink fountain foil']},
+    {'code': '16', 'name': 'Productive Foil', 'type': 'Foil', 'keywords': ['productive foil', 'protective foil']},
+    {'code': '17', 'name': 'Presspahn Sheets', 'type': 'Sheet', 'keywords': ['presspahn', 'presspahn sheet']},
+    {'code': '18', 'name': 'Washing Solutions', 'type': 'Washing Solution', 'keywords': ['washing solution', 'wash solution', 'wash', 'cleaner']},
+    {'code': '19', 'name': 'Fountain Solutions', 'type': 'Fountain Solution', 'keywords': ['fountain solution']},
+    {'code': '20', 'name': 'Plate Care Products', 'type': 'Plate Care', 'keywords': ['plate care', 'plate cleaner', 'plate gum', 'plate conditioner']},
+    {'code': '21', 'name': 'Roller Care Products', 'type': 'Roller Care', 'keywords': ['roller care', 'roller wash', 'roller cleaner', 'roller conditioner']},
+    {'code': '22', 'name': 'Blanket Maintenance Products', 'type': 'Blanket Maintenance', 'keywords': ['blanket maintenance', 'blanket cleaner', 'blanket wash', 'blanket paste']},
+    {'code': '23', 'name': 'Auto Wash Cloth', 'type': 'Wash Cloth', 'keywords': ['auto wash cloth', 'autowash cloth', 'wash cloth']},
+    {'code': '24', 'name': 'ICP Paper', 'type': 'Paper', 'keywords': ['icp paper']},
+    {'code': '25', 'name': 'Spray Powder', 'type': 'Powder', 'keywords': ['spray powder']},
+    {'code': '26', 'name': 'Sponges', 'type': 'Sponge', 'keywords': ['sponge', 'sponges']},
+    {'code': '27', 'name': 'Dampening Hose', 'type': 'Hose', 'keywords': ['dampening hose', 'damping hose']},
+    {'code': '28', 'name': 'Tesamol Tape', 'type': 'Tape', 'keywords': ['tesamol', 'tesa tape', 'tesamol tape']},
+    {'code': '01', 'name': 'Rubber Blankets', 'type': 'Rubber Blanket', 'keywords': ['rubber blanket', 'blanket']},
+]
+
+SIZE_PATTERN = re.compile(
+    r'(\d+(?:\.\d+)?\s*(?:x|X)\s*\d+(?:\.\d+)?(?:\s*(?:x|X)\s*\d+(?:\.\d+)?)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|inch|in)?)'
+)
+UNIT_PATTERN = re.compile(r'(\d+(?:\.\d+)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|kg|g|ltr|l|ml|inch|in))')
+BRAND_STOPWORDS = {
+    'rubber', 'blanket', 'blankets', 'metalback', 'metal', 'back', 'underlay', 'underpacking',
+    'paper', 'film', 'matrix', 'creasing', 'cutting', 'rules', 'rule', 'litho', 'perforation',
+    'string', 'ejection', 'strip', 'plate', 'anti', 'marking', 'ink', 'duct', 'foil', 'productive',
+    'protective', 'presspahn', 'sheets', 'washing', 'solutions', 'solution', 'fountain', 'care',
+    'products', 'roller', 'maintenance', 'auto', 'wash', 'cloth', 'icp', 'spray', 'powder',
+    'sponges', 'sponge', 'dampening', 'hose', 'tesamol', 'tape'
+}
+
+
+def _clean_text(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ''
+    return re.sub(r'\s+', ' ', str(value)).strip()
+
+
+def _normalize_text(value):
+    return re.sub(r'[^a-z0-9]+', ' ', _clean_text(value).lower()).strip()
+
+
+def _extract_size(name, description, product_format):
+    combined = ' | '.join(filter(None, [_clean_text(name), _clean_text(description), _clean_text(product_format)]))
+    matches = SIZE_PATTERN.findall(combined) + UNIT_PATTERN.findall(combined)
+    cleaned = []
+    seen = set()
+    for match in matches:
+        value = re.sub(r'\s+', ' ', match).strip(' ,;/-')
+        if value and value.lower() not in seen:
+            seen.add(value.lower())
+            cleaned.append(value)
+    return ', '.join(cleaned[:3])
+
+
+def _extract_brand(name, description):
+    source = _clean_text(name) or _clean_text(description)
+    if not source:
+        return ''
+
+    source = re.split(r'[\(|,/]', source, maxsplit=1)[0]
+    source = re.sub(r'\b\d+(?:\.\d+)?(?:\s*(?:x|X)\s*\d+(?:\.\d+)?)*\b', ' ', source)
+    source = re.sub(r'[^A-Za-z0-9\- ]+', ' ', source)
+    tokens = [token for token in source.split() if token]
+
+    brand_tokens = []
+    for token in tokens:
+        normalized = token.lower().strip('-')
+        if normalized in BRAND_STOPWORDS:
+            continue
+        if re.fullmatch(r'\d+(?:\.\d+)?', normalized):
+            break
+        if len(brand_tokens) >= 3:
+            break
+        brand_tokens.append(token)
+
+    return ' '.join(brand_tokens)
+
+
+def _extract_specification(name, description, product_format, size_value, brand_value):
+    format_value = _clean_text(product_format)
+    if format_value:
+        return format_value
+
+    combined = ' '.join(filter(None, [_clean_text(name), _clean_text(description)]))
+    if brand_value:
+        combined = re.sub(re.escape(brand_value), ' ', combined, flags=re.IGNORECASE)
+    if size_value:
+        combined = re.sub(re.escape(size_value), ' ', combined, flags=re.IGNORECASE)
+    combined = re.sub(r'\s+', ' ', combined).strip(' ,;-')
+    return combined[:120]
+
+
+def _match_category(name, description, product_format):
+    normalized_name = _normalize_text(name)
+    normalized_description = _normalize_text(description)
+    normalized_format = _normalize_text(product_format)
+    normalized_combined = ' '.join(filter(None, [normalized_name, normalized_description, normalized_format]))
+
+    best_rule = None
+    best_score = 0
+
+    for rule in CATEGORY_RULES:
+        score = 0
+        for keyword in rule['keywords']:
+            keyword_value = _normalize_text(keyword)
+            if not keyword_value:
+                continue
+            if keyword_value in normalized_name:
+                score += 6
+            elif keyword_value in normalized_description:
+                score += 4
+            elif keyword_value in normalized_format:
+                score += 5
+            elif keyword_value in normalized_combined:
+                score += 2
+
+        if rule['code'] == '01':
+            if any(blocker in normalized_combined for blocker in ['metalback', 'metal back', 'underlay', 'barring']):
+                score = 0
+        if rule['code'] == '18' and 'blanket' in normalized_combined:
+            score -= 1
+
+        if score > best_score:
+            best_score = score
+            best_rule = rule
+
+    if best_rule and best_score > 0:
+        return f"{best_rule['code']} - {best_rule['name']}", best_rule['type']
+
+    return '', ''
 
 @sku_bp.route('/sku/generate', methods=['POST'])
 def generate_sku():
@@ -100,5 +248,80 @@ def check_duplicate():
             }), 200
         else:
             return jsonify({'exists': False}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@sku_bp.route('/sku/analyze-excel', methods=['POST'])
+def analyze_excel():
+    try:
+        if 'excel-file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['excel-file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return jsonify({'error': 'Invalid file format. Please upload an Excel file.'}), 400
+
+        df = pd.read_excel(file, dtype=str)
+
+        required_columns = ['Name', 'Description', 'Product Format']
+        missing_columns = [column for column in required_columns if column not in df.columns]
+        if missing_columns:
+            return jsonify({'error': f"Missing required column(s): {', '.join(missing_columns)}"}), 400
+
+        brands = []
+        specifications = []
+        sizes = []
+        types = []
+        categories = []
+        categorized_rows = 0
+
+        for _, row in df.iterrows():
+            name = row.get('Name', '')
+            description = row.get('Description', '')
+            product_format = row.get('Product Format', '')
+
+            size_value = _extract_size(name, description, product_format)
+            brand_value = _extract_brand(name, description)
+            specification_value = _extract_specification(name, description, product_format, size_value, brand_value)
+            category_value, type_value = _match_category(name, description, product_format)
+
+            if category_value:
+                categorized_rows += 1
+
+            brands.append(brand_value)
+            specifications.append(specification_value)
+            sizes.append(size_value)
+            types.append(type_value)
+            categories.append(category_value)
+
+        result_df = df.copy()
+        result_df['Brand'] = brands
+        result_df['Specification'] = specifications
+        result_df['Size'] = sizes
+        result_df['Type'] = types
+        result_df['Category'] = categories
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            result_df.to_excel(writer, index=False, sheet_name='Analyzed SKU')
+
+        output.seek(0)
+        filename_root = re.sub(r'\.(xlsx|xls)$', '', file.filename, flags=re.IGNORECASE)
+        download_name = f'{filename_root}_analyzed.xlsx'
+
+        response = send_file(
+            output,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response.headers['X-Processed-Rows'] = str(len(result_df.index))
+        response.headers['X-Categorized-Rows'] = str(categorized_rows)
+        return response
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
