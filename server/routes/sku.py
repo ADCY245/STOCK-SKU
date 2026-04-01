@@ -177,6 +177,7 @@ def _extract_product_name(name, brand_value):
         return ''
 
     value = re.split(r'\s*[\(|\[]', value, maxsplit=1)[0]
+    value = re.sub(r'\b(?:x\s*x|xx)\b', ' ', value, flags=re.IGNORECASE)
     value = re.sub(r'\b(?:ALUB|STLB)\b', ' ', value, flags=re.IGNORECASE)
     value = re.sub(r'\b\d+(?:\.\d+)?\s*(?:x|X)\s*\d+(?:\.\d+)?(?:\s*(?:x|X)\s*\d+(?:\.\d+)?)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|inch|in)\b', ' ', value, flags=re.IGNORECASE)
     value = re.sub(r'\b\d+(?:\.\d+)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|inch|in)\b', ' ', value, flags=re.IGNORECASE)
@@ -192,41 +193,56 @@ def _extract_first_three_units(name, description, product_format):
     return matches[:3]
 
 
-def _match_type_by_rules(brand_value, name, description, product_format):
+def _has_litre_unit(name, description, product_format):
+    combined = ' '.join(filter(None, [_clean_text(name), _clean_text(description), _clean_text(product_format)])).lower()
+    return bool(re.search(r'\b\d+(?:\.\d+)?\s*(?:l|ltr|litre|liters|litres)\b', combined))
+
+
+def _match_type_and_category_override(brand_value, name, description, product_format, base_type, category_value):
     normalized_combined = ' '.join(filter(None, [
         _normalize_text(name),
         _normalize_text(description),
         _normalize_text(product_format),
     ]))
 
+    if _has_litre_unit(name, description, product_format):
+        return 'Chemicals / Maintenance Products', 'Chemicals / Maintenance Products'
+
     has_bar = any(keyword in normalized_combined for keyword in ['alub', 'stlb'])
     if 'sponge' in normalized_combined:
-        return 'Sponge Pieces'
+        return 'Sponge Pieces', category_value
 
     if brand_value == 'B4P' and has_bar:
-        return 'Barring Pieces'
+        return 'Barring Pieces', category_value
 
     units = _extract_first_three_units(name, description, product_format)
 
-    if brand_value == 'M3Z':
+    format_only_thickness = bool(re.fullmatch(r'\s*\d+(?:\.\d+)?\s*mm\s*', _clean_text(product_format), flags=re.IGNORECASE))
+
+    if base_type in ['Underpacking Paper', 'Underpacking Film'] or brand_value == 'M3Z':
         if has_bar:
-            return 'Underpacking - Bar Cut format'
+            return 'Underpacking', 'Underpacking - Bar Cut format'
         if units == ['mm', 'mm', 'mm']:
-            return 'Underpacking - Cut Format'
+            return 'Underpacking', 'Underpacking - Cut Format'
         if units == ['m', 'mm', 'mm']:
-            return 'Underpacking - Roll Format'
-        return 'Underpacking'
+            return 'Underpacking', 'Underpacking - Roll Format'
+        if format_only_thickness:
+            return 'Underpacking', 'Underpacking - Roll Format'
+        return 'Underpacking', category_value
 
-    if brand_value:
+    blanket_types = {'Rubber Blanket', 'Metalback Blanket', 'Underlay Blanket', 'Barring'}
+    if base_type in blanket_types:
         if has_bar:
-            return 'Rubber Blanket - Bar Cut format'
+            return 'Rubber Blanket', 'Rubber Blanket - Bar Cut format'
         if units == ['mm', 'mm', 'mm']:
-            return 'Rubber Blanket - Cut Format'
+            return 'Rubber Blanket', 'Rubber Blanket - Cut Format'
         if units == ['mm', 'm', 'mm']:
-            return 'Rubber Blanket - Roll Format'
-        return 'Rubber Blanket'
+            return 'Rubber Blanket', 'Rubber Blanket - Roll Format'
+        if format_only_thickness:
+            return 'Rubber Blanket', 'Rubber Blanket - Roll Format'
+        return 'Rubber Blanket', category_value
 
-    return ''
+    return '', category_value
 
 
 def _match_category(name, description, product_format):
@@ -433,10 +449,19 @@ def analyze_excel():
             brand_value = _normalize_brand(extracted_brand, name, description, product_format)
             product_name_value = _extract_product_name(name, brand_value)
 
-            type_value = _match_type_by_rules(brand_value, name, description, product_format)
             category_value, fallback_type = _match_category(name, description, product_format)
+            type_value, category_override = _match_type_and_category_override(
+                brand_value,
+                name,
+                description,
+                product_format,
+                fallback_type,
+                category_value,
+            )
             if not type_value:
                 type_value = fallback_type
+            if category_override:
+                category_value = category_override
 
             if category_value:
                 categorized_rows += 1
