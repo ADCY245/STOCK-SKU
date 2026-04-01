@@ -51,6 +51,41 @@ BRAND_STOPWORDS = {
     'sponges', 'sponge', 'dampening', 'hose', 'tesamol', 'tape'
 }
 
+_ALLOWED_BRANDS = [
+    'MTech',
+    'SAVA',
+    'Image',
+    'B4P',
+    'Conti',
+    'Thompson',
+    'HS Boyd',
+    'M3Z',
+    'Policrom',
+    'MPack',
+]
+
+_BRAND_ALIASES = {
+    'mtech': 'MTech',
+    'm tech': 'MTech',
+    'sava': 'SAVA',
+    'image': 'Image',
+    'b4p': 'B4P',
+    'conti': 'Conti',
+    'continental': 'Conti',
+    'thompson': 'Thompson',
+    'boyd': 'HS Boyd',
+    'hs boyd': 'HS Boyd',
+    'h s boyd': 'HS Boyd',
+    'm3z': 'M3Z',
+    'marks 3 zet': 'M3Z',
+    'marks3zet': 'M3Z',
+    'polipack': 'Policrom',
+    'policrom': 'Policrom',
+    'policrom screens': 'Policrom',
+    'mpack': 'MPack',
+    'm pack': 'MPack',
+}
+
 
 def _clean_text(value):
     if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -99,6 +134,29 @@ def _extract_brand(name, description):
     return ' '.join(brand_tokens)
 
 
+def _normalize_brand(extracted_brand, name, description, product_format):
+    combined = ' '.join(filter(None, [
+        _normalize_text(extracted_brand),
+        _normalize_text(name),
+        _normalize_text(description),
+        _normalize_text(product_format),
+    ]))
+
+    best_brand = ''
+    best_pos = None
+    for alias, canonical in _BRAND_ALIASES.items():
+        if alias in combined:
+            pos = combined.find(alias)
+            if best_pos is None or pos < best_pos:
+                best_pos = pos
+                best_brand = canonical
+
+    if best_brand in _ALLOWED_BRANDS:
+        return best_brand
+
+    return ''
+
+
 def _extract_specification(name, description, product_format, size_value, brand_value):
     format_value = _clean_text(product_format)
     if format_value:
@@ -111,6 +169,64 @@ def _extract_specification(name, description, product_format, size_value, brand_
         combined = re.sub(re.escape(size_value), ' ', combined, flags=re.IGNORECASE)
     combined = re.sub(r'\s+', ' ', combined).strip(' ,;-')
     return combined[:120]
+
+
+def _extract_product_name(name, brand_value):
+    value = _clean_text(name)
+    if not value:
+        return ''
+
+    value = re.split(r'\s*[\(|\[]', value, maxsplit=1)[0]
+    value = re.sub(r'\b(?:ALUB|STLB)\b', ' ', value, flags=re.IGNORECASE)
+    value = re.sub(r'\b\d+(?:\.\d+)?\s*(?:x|X)\s*\d+(?:\.\d+)?(?:\s*(?:x|X)\s*\d+(?:\.\d+)?)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|inch|in)\b', ' ', value, flags=re.IGNORECASE)
+    value = re.sub(r'\b\d+(?:\.\d+)?\s*(?:mm|cm|m|mtr|mic|micron|gsm|inch|in)\b', ' ', value, flags=re.IGNORECASE)
+    if brand_value:
+        value = re.sub(rf'^\s*{re.escape(brand_value)}\b', ' ', value, flags=re.IGNORECASE)
+    value = re.sub(r'\s+', ' ', value).strip(' ,;/-')
+    return value
+
+
+def _extract_first_three_units(name, description, product_format):
+    combined = ' '.join(filter(None, [_clean_text(name), _clean_text(description), _clean_text(product_format)])).lower()
+    matches = re.findall(r'\b\d+(?:\.\d+)?\s*(mm|m)\b', combined)
+    return matches[:3]
+
+
+def _match_type_by_rules(brand_value, name, description, product_format):
+    normalized_combined = ' '.join(filter(None, [
+        _normalize_text(name),
+        _normalize_text(description),
+        _normalize_text(product_format),
+    ]))
+
+    has_bar = any(keyword in normalized_combined for keyword in ['alub', 'stlb'])
+    if 'sponge' in normalized_combined:
+        return 'Sponge Pieces'
+
+    if brand_value == 'B4P' and has_bar:
+        return 'Barring Pieces'
+
+    units = _extract_first_three_units(name, description, product_format)
+
+    if brand_value == 'M3Z':
+        if has_bar:
+            return 'Underpacking - Bar Cut format'
+        if units == ['mm', 'mm', 'mm']:
+            return 'Underpacking - Cut Format'
+        if units == ['m', 'mm', 'mm']:
+            return 'Underpacking - Roll Format'
+        return 'Underpacking'
+
+    if brand_value:
+        if has_bar:
+            return 'Rubber Blanket - Bar Cut format'
+        if units == ['mm', 'mm', 'mm']:
+            return 'Rubber Blanket - Cut Format'
+        if units == ['mm', 'm', 'mm']:
+            return 'Rubber Blanket - Roll Format'
+        return 'Rubber Blanket'
+
+    return ''
 
 
 def _match_category(name, description, product_format):
@@ -300,8 +416,8 @@ def analyze_excel():
                 'error': f"Missing required column(s): {', '.join(missing_columns)}. Expected headers include: {expected}"
             }), 400
 
+        product_names = []
         brands = []
-        specifications = []
         sizes = []
         types = []
         categories = []
@@ -313,22 +429,27 @@ def analyze_excel():
             product_format = row.get(resolved_columns['product_format'], '')
 
             size_value = _extract_size(name, description, product_format)
-            brand_value = _extract_brand(name, description)
-            specification_value = _extract_specification(name, description, product_format, size_value, brand_value)
-            category_value, type_value = _match_category(name, description, product_format)
+            extracted_brand = _extract_brand(name, description)
+            brand_value = _normalize_brand(extracted_brand, name, description, product_format)
+            product_name_value = _extract_product_name(name, brand_value)
+
+            type_value = _match_type_by_rules(brand_value, name, description, product_format)
+            category_value, fallback_type = _match_category(name, description, product_format)
+            if not type_value:
+                type_value = fallback_type
 
             if category_value:
                 categorized_rows += 1
 
+            product_names.append(product_name_value)
             brands.append(brand_value)
-            specifications.append(specification_value)
             sizes.append(size_value)
             types.append(type_value)
             categories.append(category_value)
 
         result_df = df.copy()
+        result_df['Product Name'] = product_names
         result_df['Brand'] = brands
-        result_df['Specification'] = specifications
         result_df['Size'] = sizes
         result_df['Type'] = types
         result_df['Category'] = categories
